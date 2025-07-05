@@ -43,6 +43,21 @@ const productAPI = {
     return axiosInstance.get(`/categories/${id}`);
   },
 
+  // Create category
+  createCategory: (categoryData) => {
+    return axiosInstance.post('/categories', categoryData);
+  },
+
+  // Update category
+  updateCategory: (id, categoryData) => {
+    return axiosInstance.put(`/categories/${id}`, categoryData);
+  },
+
+  // Delete category
+  deleteCategory: (id) => {
+    return axiosInstance.delete(`/categories/${id}`);
+  },
+
   // Approve product
   approveProduct: (id) => {
     return axiosInstance.put(`/products/${id}/approve`);

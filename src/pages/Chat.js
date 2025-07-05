@@ -251,7 +251,7 @@ const Chat = () => {
   // Start new conversation
   const startConversation = async (userId) => {
     if (!user || !user._id) return;
-    const res = await axiosInstance.post('/chat/conversations', { userId });
+          const res = await axiosInstance.post('/chat/conversations', { userId });
     setConversations((prev) => {
       if (prev.find((c) => c._id === res.data._id)) return prev;
       return [res.data, ...prev];

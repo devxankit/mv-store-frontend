@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaChartLine, FaBox, FaDollarSign, FaUsers } from 'react-icons/fa';
 import { formatINR } from '../utils/formatCurrency';
 import sellerAPI from '../api/sellerAPI';
-import axios from 'axios';
+import axiosInstance from '../api/axiosConfig';
 import productAPI from '../api/productAPI';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchOrders } from '../redux/slices/orderSlice';
@@ -267,7 +267,7 @@ const SellerDashboard = () => {
     setStatusUpdating(true);
     setStatusError('');
     try {
-      const res = await axios.put(`/api/orders/${selectedOrder._id}/status`, { status: newStatus });
+      const res = await axiosInstance.put(`/orders/${selectedOrder._id}/status`, { status: newStatus });
       // Update local state
       setSelectedOrder({ ...selectedOrder, orderStatus: res.data.orderStatus });
       // Also update in orders list
