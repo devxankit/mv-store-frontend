@@ -11,6 +11,79 @@ const ORDER_STATUSES = [
   'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'
 ];
 
+// Helper to get full path for a subcategory
+const getCategoryPath = (categories, subcatId) => {
+  for (const cat of categories) {
+    if (cat.subcategories) {
+      const found = cat.subcategories.find(sub => sub._id === subcatId);
+      if (found) return `${cat.name} > ${found.name}`;
+    }
+  }
+  return '';
+};
+
+const CategoryTreeSelector = ({ categories, selected, onSelect }) => {
+  const [expanded, setExpanded] = useState({});
+  const [search, setSearch] = useState('');
+  const toggle = id => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // Filter categories and subcategories by search
+  const filteredCategories = categories
+    .map(cat => {
+      // If main category matches, show all its subcategories
+      if (cat.name.toLowerCase().includes(search.toLowerCase())) return cat;
+      // Otherwise, filter subcategories
+      const filteredSubs = (cat.subcategories || []).filter(sub => sub.name.toLowerCase().includes(search.toLowerCase()));
+      if (filteredSubs.length > 0) return { ...cat, subcategories: filteredSubs };
+      return null;
+    })
+    .filter(Boolean);
+
+  return (
+    <div>
+      <input
+        type="text"
+        className="w-full mb-2 px-2 py-1 border rounded text-sm"
+        placeholder="Search category..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+      <div className="border rounded p-2 bg-gray-50 max-h-60 overflow-y-auto">
+        {filteredCategories.length === 0 && <div className="text-gray-400 text-sm">No categories found.</div>}
+        {filteredCategories.map(cat => (
+          <div key={cat._id} className="mb-1">
+            <div className="flex items-center">
+              {cat.subcategories && cat.subcategories.length > 0 && (
+                <button type="button" className="mr-1 text-xs text-blue-600" onClick={() => toggle(cat._id)}>
+                  {expanded[cat._id] ? '-' : '+'}
+                </button>
+              )}
+              <span className="font-semibold text-gray-800">{cat.name}</span>
+            </div>
+            {cat.subcategories && cat.subcategories.length > 0 && expanded[cat._id] && (
+              <div className="ml-4 mt-1">
+                {cat.subcategories.map(subcat => (
+                  <div key={subcat._id} className={`flex items-center mb-1 ${selected === subcat._id ? 'bg-blue-100 rounded px-1' : ''}`}>
+                    <input
+                      type="radio"
+                      name="category"
+                      value={subcat._id}
+                      checked={selected === subcat._id}
+                      onChange={() => onSelect(subcat._id)}
+                      className="mr-2"
+                    />
+                    <span className={selected === subcat._id ? 'text-blue-700 font-semibold' : ''}>{subcat.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const SellerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [products, setProducts] = useState([]);
@@ -24,7 +97,8 @@ const SellerDashboard = () => {
     stock: '',
     brand: '',
     sku: '',
-    category: '',
+    mainCategory: '',
+    subCategory: '',
     features: '',
     specifications: [{ key: '', value: '' }],
     images: [{ url: '' }],
@@ -50,6 +124,17 @@ const SellerDashboard = () => {
   // Seller stats state
   const [stats, setStats] = useState({ totalSales: 0, totalOrders: 0, totalProducts: 0, totalCustomers: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
+
+  // Add state for edit modal and form
+  const [editModal, setEditModal] = useState({ open: false, product: null });
+  const [editProduct, setEditProduct] = useState({});
+  const [editError, setEditError] = useState('');
+
+  // In SellerDashboard component, add state for main category selection
+  const [selectedMainCat, setSelectedMainCat] = useState('');
+
+  // Add editLoading state
+  const [editLoading, setEditLoading] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -111,11 +196,8 @@ const SellerDashboard = () => {
     formData.append('stock', newProduct.stock);
     formData.append('brand', newProduct.brand);
     formData.append('sku', newProduct.sku);
-    if (newProduct.category === 'other') {
-      formData.append('customCategory', newProduct.customCategory);
-    } else {
-      formData.append('category', newProduct.category);
-    }
+    formData.append('category', newProduct.mainCategory);
+    formData.append('subCategory', newProduct.subCategory);
     formData.append('features', newProduct.features);
     formData.append('specifications', JSON.stringify(newProduct.specifications.filter(s => s.key && s.value)));
     if (imageFile) formData.append('image', imageFile);
@@ -123,7 +205,7 @@ const SellerDashboard = () => {
       const res = await sellerAPI.createProduct(formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setProducts([res.data, ...products]);
       setShowModal(false);
-      setNewProduct({ name: '', description: '', price: '', comparePrice: '', stock: '', brand: '', sku: '', category: '', features: '', specifications: [{ key: '', value: '' }], images: [{ url: '' }] });
+      setNewProduct({ name: '', description: '', price: '', comparePrice: '', stock: '', brand: '', sku: '', mainCategory: '', subCategory: '', features: '', specifications: [{ key: '', value: '' }], images: [{ url: '' }] });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add product');
     }
@@ -195,6 +277,60 @@ const SellerDashboard = () => {
     } catch (err) {
       setStatusError(err.response?.data?.message || 'Failed to update status');
       setStatusUpdating(false);
+    }
+  };
+
+  // Edit product handler
+  const handleEditProduct = (product) => {
+    setEditProduct({
+      ...product,
+      mainCategory: product.category?._id || product.category,
+      subCategory: product.subCategory?._id || product.subCategory
+    });
+    setEditModal({ open: true, product });
+    setEditError('');
+  };
+
+  const handleEditProductSubmit = async (e) => {
+    e.preventDefault();
+    console.log('Submitting edit form');
+    setEditError('');
+    setEditLoading(true);
+    const formData = new FormData();
+    formData.append('name', editProduct.name);
+    formData.append('description', editProduct.description);
+    formData.append('price', editProduct.price);
+    formData.append('comparePrice', editProduct.comparePrice);
+    formData.append('stock', editProduct.stock);
+    formData.append('brand', editProduct.brand);
+    formData.append('sku', editProduct.sku);
+    formData.append('category', editProduct.mainCategory);
+    formData.append('subCategory', editProduct.subCategory);
+    formData.append('features', editProduct.features);
+    formData.append('specifications', JSON.stringify(editProduct.specifications.filter(s => s.key && s.value)));
+    if (editProduct.imageFile) {
+      formData.append('image', editProduct.imageFile);
+    } else if (editProduct.images && editProduct.images[0] && editProduct.images[0].url) {
+      formData.append('images[0][url]', editProduct.images[0].url);
+    }
+    // Log all FormData entries for debugging
+    for (let pair of formData.entries()) {
+      console.log(pair[0]+ ':', pair[1]);
+    }
+    try {
+      const res = await sellerAPI.editProduct(editModal.product._id, formData);
+      setProducts(products.map(p => p._id === editModal.product._id ? res.data : p));
+      setEditModal({ open: false, product: null });
+    } catch (err) {
+      console.error('Edit product error:', err.response);
+      if (err.response?.data?.errors) {
+        const errorMessages = Object.values(err.response.data.errors).map(e => e.message).join(' | ');
+        setEditError(errorMessages);
+      } else {
+        setEditError(err.response?.data?.message || 'Failed to update product');
+      }
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -372,25 +508,52 @@ const SellerDashboard = () => {
                     <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onClick={() => setShowModal(false)}>&times;</button>
                     <h2 className="text-xl font-bold mb-4">Add New Product</h2>
                     {error && <div className="text-red-500 mb-2">{error}</div>}
-                    <form onSubmit={handleAddProduct} encType="multipart/form-data" className="space-y-4">
+                    <form onSubmit={e => {
+                      e.preventDefault();
+                      if (!newProduct.mainCategory) {
+                        setError('Please select a subcategory for your product.');
+                        return;
+                      }
+                      setError('');
+                      handleAddProduct(e);
+                    }} encType="multipart/form-data" className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <input type="text" className="form-input" placeholder="Product Name" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} required />
                         <input type="text" className="form-input" placeholder="Brand" value={newProduct.brand} onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })} required />
                         <input type="text" className="form-input" placeholder="SKU" value={newProduct.sku} onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })} required />
-                        <select className="form-input" value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} required>
-                          <option value="">Select Category</option>
-                          {categories.map(cat => (
-                            <option key={cat._id} value={cat._id}>{cat.name}</option>
-                          ))}
-                          <option value="other">Other</option>
-                        </select>
-                        {newProduct.category === 'other' && (
-                          <input type="text" className="form-input mt-2 sm:col-span-2" placeholder="Enter custom category name" value={newProduct.customCategory || ''} onChange={e => setNewProduct({ ...newProduct, customCategory: e.target.value })} required />
-                        )}
-                        <input type="number" className="form-input" placeholder="Price" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} required min="0" />
-                        <input type="number" className="form-input" placeholder="Original Price (MRP)" value={newProduct.comparePrice} onChange={e => setNewProduct({ ...newProduct, comparePrice: e.target.value })} min="0" />
-                        <input type="number" className="form-input" placeholder="Stock" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} required min="0" />
+                        <div className="sm:col-span-2">
+                          <label className="block text-gray-700 font-medium mb-1">Select Main Category</label>
+                          <select
+                            className="form-input w-full mb-2"
+                            value={newProduct.mainCategory}
+                            onChange={e => setNewProduct({ ...newProduct, mainCategory: e.target.value, subCategory: '' })}
+                            required
+                          >
+                            <option value="">-- Select Main Category --</option>
+                            {categories.filter(cat => !cat.parentCategory).map(cat => (
+                              <option key={cat._id} value={cat._id}>{cat.name}</option>
+                            ))}
+                          </select>
+                          {newProduct.mainCategory && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {categories.filter(cat => cat.parentCategory === newProduct.mainCategory).map(subcat => (
+                                <button
+                                  type="button"
+                                  key={subcat._id}
+                                  className={`px-3 py-2 rounded border transition-colors ${newProduct.subCategory === subcat._id ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-blue-100'}`}
+                                  onClick={() => setNewProduct({ ...newProduct, subCategory: subcat._id })}
+                                >
+                                  {subcat.name}
+                                </button>
+                              ))}
+                              {categories.filter(cat => cat.parentCategory === newProduct.mainCategory).length === 0 && <span className="text-gray-400">No subcategories found.</span>}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      <input type="number" className="form-input" placeholder="Price" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} required min="0" />
+                      <input type="number" className="form-input" placeholder="Original Price (MRP)" value={newProduct.comparePrice} onChange={e => setNewProduct({ ...newProduct, comparePrice: e.target.value })} min="0" />
+                      <input type="number" className="form-input" placeholder="Stock" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} required min="0" />
                       <textarea className="form-input" placeholder="Description" value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} required />
                       <input type="text" className="form-input" placeholder="Key Features (comma separated)" value={newProduct.features} onChange={e => setNewProduct({ ...newProduct, features: e.target.value })} />
                       <div>
@@ -461,6 +624,7 @@ const SellerDashboard = () => {
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex space-x-2">
+                              <button className="text-green-600 hover:text-green-800" onClick={() => handleEditProduct(product)}><FaEdit /></button>
                               <button className="text-red-600 hover:text-red-800" onClick={() => handleDeleteProduct(product._id)}><FaTrash /></button>
                             </div>
                           </td>
@@ -654,6 +818,82 @@ const SellerDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Product Modal */}
+      {editModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8 w-full max-w-lg mx-2 sm:mx-0 relative overflow-y-auto max-h-[90vh]">
+            <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onClick={() => setEditModal({ open: false, product: null })}>&times;</button>
+            <h2 className="text-xl font-bold mb-4">Edit Product</h2>
+            {editError && <div className="text-red-500 mb-2">{editError}</div>}
+            <form onSubmit={handleEditProductSubmit} encType="multipart/form-data" className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input type="text" className="form-input" placeholder="Product Name" value={editProduct.name || ''} onChange={e => setEditProduct({ ...editProduct, name: e.target.value })} required />
+                <input type="text" className="form-input" placeholder="Brand" value={editProduct.brand || ''} onChange={e => setEditProduct({ ...editProduct, brand: e.target.value })} required />
+                <input type="text" className="form-input" placeholder="SKU" value={editProduct.sku || ''} onChange={e => setEditProduct({ ...editProduct, sku: e.target.value })} required />
+                <div className="sm:col-span-2">
+                  <label className="block text-gray-700 font-medium mb-1">Select Main Category</label>
+                  <select
+                    className="form-input w-full mb-2"
+                    value={editProduct.mainCategory || ''}
+                    onChange={e => setEditProduct({ ...editProduct, mainCategory: e.target.value, subCategory: '' })}
+                    required
+                  >
+                    <option value="">-- Select Main Category --</option>
+                    {categories.filter(cat => !cat.parentCategory).map(cat => (
+                      <option key={cat._id} value={cat._id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  {/* Subcategory selection as cards/pills */}
+                  {editProduct.mainCategory && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {categories.filter(cat => cat.parentCategory === editProduct.mainCategory).map(subcat => (
+                        <button
+                          type="button"
+                          key={subcat._id}
+                          className={`px-3 py-2 rounded border transition-colors ${editProduct.subCategory === subcat._id ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-blue-100'}`}
+                          onClick={() => setEditProduct({ ...editProduct, subCategory: subcat._id })}
+                        >
+                          {subcat.name}
+                        </button>
+                      ))}
+                      {categories.filter(cat => cat.parentCategory === editProduct.mainCategory).length === 0 && <span className="text-gray-400">No subcategories found.</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <input type="number" className="form-input" placeholder="Price" value={editProduct.price || ''} onChange={e => setEditProduct({ ...editProduct, price: e.target.value })} required min="0" />
+              <input type="number" className="form-input" placeholder="Original Price (MRP)" value={editProduct.comparePrice || ''} onChange={e => setEditProduct({ ...editProduct, comparePrice: e.target.value })} min="0" />
+              <input type="number" className="form-input" placeholder="Stock" value={editProduct.stock || ''} onChange={e => setEditProduct({ ...editProduct, stock: e.target.value })} required min="0" />
+              <textarea className="form-input" placeholder="Description" value={editProduct.description || ''} onChange={e => setEditProduct({ ...editProduct, description: e.target.value })} required />
+              <input type="text" className="form-input" placeholder="Key Features (comma separated)" value={editProduct.features || ''} onChange={e => setEditProduct({ ...editProduct, features: e.target.value })} />
+              <div>
+                {editProduct.specifications && editProduct.specifications.map((spec, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row gap-2 mb-2">
+                    <input type="text" className="form-input flex-1" placeholder="Spec Name" value={spec.key} onChange={e => {
+                      const specs = [...editProduct.specifications];
+                      specs[idx].key = e.target.value;
+                      setEditProduct({ ...editProduct, specifications: specs });
+                    }} />
+                    <input type="text" className="form-input flex-1" placeholder="Spec Value" value={spec.value} onChange={e => {
+                      const specs = [...editProduct.specifications];
+                      specs[idx].value = e.target.value;
+                      setEditProduct({ ...editProduct, specifications: specs });
+                    }} />
+                    <button type="button" onClick={() => {
+                      const specs = editProduct.specifications.filter((_, i) => i !== idx);
+                      setEditProduct({ ...editProduct, specifications: specs });
+                    }} className="text-red-500">Remove</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setEditProduct({ ...editProduct, specifications: [...(editProduct.specifications || []), { key: '', value: '' }] })} className="text-blue-600 mb-2">+ Add Specification</button>
+              </div>
+              <input type="file" accept="image/*" onChange={e => setEditProduct({ ...editProduct, imageFile: e.target.files[0] })} />
+              <button type="submit" className="btn-primary w-full" disabled={editLoading}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

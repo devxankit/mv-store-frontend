@@ -89,7 +89,10 @@ const ProductList = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = category === 'all' || product.category === category;
+    const matchesCategory =
+      category === 'all' ||
+      String(product.category) === String(category) ||
+      (product.subCategory && String(product.subCategory) === String(category));
     return matchesSearch && matchesCategory;
   });
   console.log('Filtered products:', filteredProducts);
@@ -177,10 +180,15 @@ const ProductList = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat._id} value={cat._id}>
-                  {cat.name}
-                </option>
+              {categories.filter(cat => !cat.parentCategory).map(main => (
+                <React.Fragment key={main._id}>
+                  <option disabled style={{ fontWeight: 'bold', background: '#f3f4f6' }}>{main.name}</option>
+                  {categories.filter(sub => sub.parentCategory === main._id).map(sub => (
+                    <option key={sub._id} value={sub._id} style={{ paddingLeft: 20 }}>
+                      &nbsp;&nbsp;› {sub.name}
+                    </option>
+                  ))}
+                </React.Fragment>
               ))}
             </select>
           </div>

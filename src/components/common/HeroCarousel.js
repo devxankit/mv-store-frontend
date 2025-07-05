@@ -1,6 +1,6 @@
 import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Navigation, Pagination, A11y } from 'swiper/modules';
+import { Autoplay, Navigation, Pagination, A11y } from 'swiper';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import 'swiper/css';

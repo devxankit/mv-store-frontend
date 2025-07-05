@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUsers, FaBox, FaDollarSign, FaChartLine, FaEdit, FaTrash, FaEye, FaPlus, FaStore, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaUsers, FaBox, FaDollarSign, FaChartLine, FaEdit, FaTrash, FaEye, FaPlus, FaStore, FaCheck, FaTimes, FaImage } from 'react-icons/fa';
 import { formatINR } from '../utils/formatCurrency';
 import sellerAPI from '../api/sellerAPI';
 import productAPI from '../api/productAPI';
@@ -37,6 +37,14 @@ const AdminDashboard = () => {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categoryModal, setCategoryModal] = useState({ open: false, category: null });
+  const [categoryForm, setCategoryForm] = useState({ name: '', slug: '', description: '', image: null });
+  const [categoryError, setCategoryError] = useState('');
+
+  const [selectedMainCat, setSelectedMainCat] = useState('');
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -112,6 +120,14 @@ const AdminDashboard = () => {
       .then(res => setProducts(res.data))
       .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false));
+  }, []);
+
+  useEffect(() => {
+    setLoadingCategories(true);
+    productAPI.getCategories()
+      .then(res => setCategories(res.data))
+      .catch(() => setCategories([]))
+      .finally(() => setLoadingCategories(false));
   }, []);
 
   const handleVendorAction = async (vendorId, action) => {
@@ -228,6 +244,45 @@ const AdminDashboard = () => {
     setSelectedOrder(null);
   };
 
+  const handleOpenCategoryModal = (category = null) => {
+    setCategoryForm(category ? { ...category, image: null } : { name: '', slug: '', description: '', image: null });
+    setCategoryModal({ open: true, category });
+    setCategoryError('');
+  };
+  const handleCategoryFormChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'image') {
+      setCategoryForm((prev) => ({ ...prev, image: files[0] }));
+    } else {
+      setCategoryForm((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+  const handleCategoryFormSubmit = async (e) => {
+    e.preventDefault();
+    setCategoryError('');
+    const formData = new FormData();
+    formData.append('name', categoryForm.name);
+    formData.append('slug', categoryForm.slug);
+    formData.append('description', categoryForm.description);
+    if (categoryForm.image) formData.append('image', categoryForm.image);
+    try {
+      if (categoryModal.category) {
+        await productAPI.updateCategory(categoryModal.category._id, formData);
+      } else {
+        await productAPI.createCategory(formData);
+      }
+      // Refresh categories
+      setLoadingCategories(true);
+      const res = await productAPI.getCategories();
+      setCategories(res.data);
+      setCategoryModal({ open: false, category: null });
+    } catch (err) {
+      setCategoryError(err.response?.data?.message || 'Failed to save category');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -341,6 +396,16 @@ const AdminDashboard = () => {
               }`}
             >
               Orders
+            </button>
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'categories'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Categories
             </button>
           </nav>
         </div>
@@ -731,6 +796,138 @@ const AdminDashboard = () => {
               )}
             </div>
           )}
+
+          {/* Categories Tab */}
+          {activeTab === 'categories' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-800">Category Management</h3>
+                {!selectedMainCat && (
+                  <button
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                    onClick={() => handleOpenCategoryModal()}
+                  >
+                    <FaPlus /> Add Main Category
+                  </button>
+                )}
+                {selectedMainCat && (
+                  <button
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+                    onClick={() => setSelectedMainCat('')}
+                  >
+                    &larr; Back to Main Categories
+                  </button>
+                )}
+              </div>
+              {loadingCategories ? (
+                <div>Loading categories...</div>
+              ) : !selectedMainCat ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                  {categories.filter(cat => !cat.parentCategory).map(cat => (
+                    <button
+                      key={cat._id}
+                      onClick={() => setSelectedMainCat(cat._id)}
+                      className="group w-full"
+                    >
+                      <div className="relative bg-gray-100 rounded-lg p-6 text-center hover:bg-primary-50 transition-colors overflow-hidden h-40 flex flex-col justify-end items-center">
+                        <div className="relative z-10">
+                          <h3 className="font-semibold mb-2 group-hover:text-primary-600 text-gray-800 text-lg">
+                            {cat.name || 'Unnamed Category'}
+                          </h3>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-lg font-semibold">Subcategories of {categories.find(cat => cat._id === selectedMainCat)?.name}</h4>
+                    <button
+                      className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
+                      onClick={() => handleOpenCategoryModal({ parentCategory: selectedMainCat })}
+                    >
+                      <FaPlus /> Add Subcategory
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {categories.filter(cat => cat.parentCategory === selectedMainCat).map(subcat => (
+                      <div key={subcat._id} className="bg-white rounded-lg shadow p-4 flex flex-col items-center min-w-[160px]">
+                        <span className="font-semibold mb-2">{subcat.name}</span>
+                        <span className="text-xs text-gray-500 mb-2">{subcat.productCount || 0} products</span>
+                        <div className="flex gap-2">
+                          <button
+                            className="text-blue-600 hover:text-blue-800"
+                            onClick={() => handleOpenCategoryModal(subcat)}
+                            title="Edit Subcategory"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            className="text-red-600 hover:text-red-800"
+                            onClick={async () => {
+                              if (window.confirm('Delete this subcategory?')) {
+                                await productAPI.deleteCategory(subcat._id);
+                                setLoadingCategories(true);
+                                const res = await productAPI.getCategories();
+                                setCategories(res.data);
+                                setLoadingCategories(false);
+                              }
+                            }}
+                            title="Delete Subcategory"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {categories.filter(cat => cat.parentCategory === selectedMainCat).length === 0 && <span className="text-gray-400">No subcategories found.</span>}
+                  </div>
+                </>
+              )}
+              {/* Category Modal */}
+              {categoryModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg relative">
+                    <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onClick={() => setCategoryModal({ open: false, category: null })}>&times;</button>
+                    <h2 className="text-xl font-bold mb-4">{categoryModal.category && categoryModal.category._id ? 'Edit Category' : 'Add Category'}</h2>
+                    <form onSubmit={handleCategoryFormSubmit}>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-1">Name</label>
+                        <input type="text" name="name" value={categoryForm.name} onChange={handleCategoryFormChange} className="w-full border rounded px-3 py-2" required />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-1">Slug</label>
+                        <input type="text" name="slug" value={categoryForm.slug} onChange={handleCategoryFormChange} className="w-full border rounded px-3 py-2" required />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-1">Description</label>
+                        <textarea name="description" value={categoryForm.description} onChange={handleCategoryFormChange} className="w-full border rounded px-3 py-2" />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-1">Image</label>
+                        <input type="file" name="image" accept="image/*" onChange={handleCategoryFormChange} className="w-full" />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-1">Parent Category</label>
+                        <select name="parentCategory" value={categoryForm.parentCategory || ''} onChange={handleCategoryFormChange} className="w-full border rounded px-3 py-2">
+                          <option value="">None (Main Category)</option>
+                          {categories.map((cat) => (
+                            <option key={cat._id} value={cat._id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {categoryError && <div className="text-red-600 mb-2">{categoryError}</div>}
+                      <div className="flex justify-end gap-2">
+                        <button type="button" className="bg-gray-200 text-gray-700 px-4 py-2 rounded" onClick={() => setCategoryModal({ open: false, category: null })}>Cancel</button>
+                        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -748,7 +945,31 @@ const AdminDashboard = () => {
               <input type="number" className="form-input" placeholder="Stock" value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: e.target.value })} required min="0" />
               <input type="text" className="form-input" placeholder="Brand" value={editForm.brand} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} required />
               <input type="text" className="form-input" placeholder="SKU" value={editForm.sku} onChange={e => setEditForm({ ...editForm, sku: e.target.value })} required />
-              <input type="text" className="form-input" placeholder="Category (ID)" value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })} required />
+              <div className="flex gap-2">
+                <select
+                  className="form-input"
+                  value={editForm.category || ''}
+                  onChange={e => setEditForm({ ...editForm, category: e.target.value, subCategory: '' })}
+                  required
+                >
+                  <option value="">Select Main Category</option>
+                  {categories.filter(cat => !cat.parentCategory).map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-input"
+                  value={editForm.subCategory || ''}
+                  onChange={e => setEditForm({ ...editForm, subCategory: e.target.value })}
+                  required
+                  disabled={!editForm.category}
+                >
+                  <option value="">Select Subcategory</option>
+                  {categories.filter(cat => cat.parentCategory === editForm.category).map(subcat => (
+                    <option key={subcat._id} value={subcat._id}>{subcat.name}</option>
+                  ))}
+                </select>
+              </div>
               <input type="text" className="form-input" placeholder="Image URL" value={editForm.images && editForm.images[0] ? editForm.images[0].url : ''} onChange={e => setEditForm({ ...editForm, images: [{ url: e.target.value }] })} required />
               <button type="submit" className="btn-primary w-full">Update Product</button>
             </form>
