@@ -147,6 +147,32 @@ const productAPI = {
   deleteEventBanner: () => {
     return axiosInstance.delete('/products/event-banner');
   },
+
+  // Get discover products
+  getDiscoverProducts: () => {
+    return axiosInstance.get('/products/discover');
+  },
+
+  // Get recommended products
+  getRecommendedProducts: () => {
+    return axiosInstance.get('/products/recommended');
+  },
+
+  // Set/unset discover product (admin only)
+  setDiscoverProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/discover`);
+  },
+  unsetDiscoverProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/undiscover`);
+  },
+
+  // Set/unset recommended product (admin only)
+  setRecommendedProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/recommend`);
+  },
+  unsetRecommendedProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/unrecommend`);
+  },
 };
 
 export default productAPI; 

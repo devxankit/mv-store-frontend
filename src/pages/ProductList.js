@@ -9,6 +9,7 @@ import { useStore } from 'react-redux';
 import productAPI from '../api/productAPI';
 import { toast } from 'react-toastify';
 import { setLoading } from '../redux/slices/authSlice';
+import ProductCard from '../components/common/ProductCard';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -123,7 +124,7 @@ const ProductList = () => {
   };
 
   // Wishlist handler
-  const isInWishlist = (productId) => wishlistItems.some((item) => item._id === productId);
+  const isInWishlist = (productId) => wishlistItems.some((item) => String(item._id) === String(productId));
   const handleWishlist = (product) => {
     if (!isAuthenticated) {
       toast.info('Please login to use wishlist!');
@@ -148,7 +149,7 @@ const ProductList = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Our Products</h1>
@@ -156,7 +157,7 @@ const ProductList = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -217,58 +218,15 @@ const ProductList = () => {
           <p className="text-gray-500">Try adjusting your search or filter criteria</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8 xl:gap-10 justify-center">
           {sortedProducts.map((product) => (
-            <div key={product._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col relative">
-              <div className="absolute top-3 right-3 z-10">
-                <button
-                  className={`bg-white/80 rounded-full p-2 shadow transition ${isInWishlist(product._id) ? 'text-pink-500' : 'text-gray-400 hover:bg-pink-100 hover:text-pink-500'}`}
-                  onClick={() => handleWishlist(product)}
-                  aria-label={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                >
-                  <FaHeart className={`text-xl ${isInWishlist(product._id) ? '' : 'stroke-2'}`} fill={isInWishlist(product._id) ? 'currentColor' : 'none'} />
-                </button>
-              </div>
-              <Link to={`/products/${product._id}`} className="block overflow-hidden">
-                <img
-                  src={product.images && product.images[0] ? product.images[0].url : '/product-images/default.webp'}
-                  alt={product.name}
-                  className="w-full h-48 sm:h-56 object-cover hover:scale-105 transition-transform duration-300"
-                  onError={(e) => { e.target.onerror = null; e.target.src = `https://images.unsplash.com/photo-1519985176271-adb1088fa94c?auto=format&fit=crop&w=400&q=80`; }}
-                />
-              </Link>
-              <div className="p-5 flex flex-col flex-1">
-                <Link to={`/products/${product._id}`}>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2 hover:text-blue-600 transition-colors">
-                    {product.name}
-                  </h3>
-                </Link>
-                <div className="flex items-center mb-2">
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-lg">
-                        {i < Math.floor(product.rating) ? '★' : '☆'}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-500 ml-2">
-                    ({Array.isArray(product.reviews) ? product.reviews.length : 0} reviews)
-                  </span>
-                </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-auto gap-3">
-                  <span className="text-2xl font-bold text-blue-600">
-                    {formatINR(product.price)}
-                  </span>
-                  <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md w-full sm:w-auto justify-center"
-                    onClick={() => handleAddToCart({ ...product, _id: product._id })}
-                  >
-                    <FaShoppingCart />
-                    <span className="hidden xs:inline">Add to Cart</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ProductCard
+              key={product._id}
+              product={product}
+              isInWishlist={isInWishlist}
+              handleWishlist={handleWishlist}
+              handleAddToCart={() => handleAddToCart({ ...product, _id: product._id })}
+            />
           ))}
         </div>
       )}

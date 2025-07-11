@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { 
   FaArrowRight, 
@@ -19,17 +19,52 @@ import CategoriesGrid from '../components/common/CategoriesGrid';
 import HeroCarousel from '../components/common/HeroCarousel';
 import EventBanner from '../components/common/EventBanner';
 import BrandMarquee from '../components/common/BrandMarquee';
+import ProductCard from '../components/common/ProductCard';
+import { fetchWishlist, addToWishlist, removeFromWishlist } from '../redux/slices/wishlistSlice';
 
 const Home = () => {
   const dispatch = useDispatch();
   const { featuredProducts, loading, products } = useSelector((state) => state.products);
   const [categories, setCategories] = useState([]);
+  const { items: wishlistItems } = useSelector((state) => state.wishlist);
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const store = useStore();
 
   useEffect(() => {
     dispatch(fetchFeaturedProducts());
     dispatch(fetchProducts());
     productAPI.getCategories().then(res => setCategories(res.data)).catch(() => setCategories([]));
   }, [dispatch]);
+
+  // Fetch wishlist on mount if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchWishlist());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  // Save cart to localStorage on every change (optional, for parity with ProductList)
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      const state = store.getState();
+      localStorage.setItem('cart', JSON.stringify(state.cart));
+    });
+    return unsubscribe;
+  }, []);
+
+  // Wishlist logic
+  const isInWishlist = (productId) => wishlistItems.some((item) => String(item._id) === String(productId));
+  const handleWishlist = (product) => {
+    if (!isAuthenticated) {
+      alert('Please login to use wishlist!');
+      return;
+    }
+    if (isInWishlist(product._id)) {
+      dispatch(removeFromWishlist(product._id));
+    } else {
+      dispatch(addToWishlist(product._id));
+    }
+  };
 
   const handleAddToCart = (product) => {
     dispatch(addToCartAsync({ product, quantity: 1 }));
@@ -66,13 +101,19 @@ const Home = () => {
   // Filter only main categories (no parentCategory)
   const mainCategories = categories.filter(cat => !cat.parentCategory).slice(0, 6);
 
-  // Helper to get 8 random products
-  const getRandomProducts = () => {
-    if (!Array.isArray(products) || products.length === 0) return [];
-    const shuffled = [...products].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 8);
-  };
-  const randomProducts = getRandomProducts();
+  // Debug: log main category names
+  console.log('Main categories:', mainCategories.map(cat => cat.name));
+  if (mainCategories.length) {
+    mainCategories.forEach(cat => console.log('Category name:', cat.name));
+  }
+
+  // Fetch discover and recommended products from backend
+  const [discoverProducts, setDiscoverProducts] = useState([]);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  useEffect(() => {
+    productAPI.getDiscoverProducts().then(res => setDiscoverProducts(res.data)).catch(() => setDiscoverProducts([]));
+    productAPI.getRecommendedProducts().then(res => setRecommendedProducts(res.data)).catch(() => setRecommendedProducts([]));
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -140,48 +181,19 @@ const Home = () => {
               <div className="spinner"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {(Array.isArray(featuredProducts) ? featuredProducts : []).slice(0, 8).map((product) => (
-                <div key={product._id} className="product-card">
-                  <div className="relative">
-                    <img
-                      src={product.images && product.images[0]?.url && product.images[0]?.url !== '' ? product.images[0].url : getProductImage(product.name)}
-                      alt={product.name}
-                      className="w-full h-48 object-cover"
-                      onError={(e) => { e.target.onerror = null; e.target.src = `https://picsum.photos/seed/${encodeURIComponent(product.name)}/400/300`; }}
-                    />
-                    <button className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100">
-                      <FaHeart className="text-gray-400 hover:text-red-500" />
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
-                    <div className="flex items-center mb-2">
-                      <div className="flex text-yellow-400">
-                        {[...Array(5)].map((_, i) => (
-                          <FaStar
-                            key={i}
-                            className={i < Math.floor(product.ratings || 0) ? 'text-yellow-400' : 'text-gray-300'}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-600 ml-2">
-                        ({product.numReviews || 0})
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-primary-600">
-                        {formatINR(product.price)}
-                      </span>
-                      <button
-                        onClick={() => handleAddToCart(product)}
-                        className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors"
-                      >
-                        <FaShoppingCart />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  isInWishlist={isInWishlist}
+                  handleWishlist={handleWishlist}
+                  handleAddToCart={() => handleAddToCart(product)}
+                  showWishlist={true}
+                  showAddToCart={true}
+                  showRating={true}
+                  showPrice={true}
+                />
               ))}
             </div>
           )}
@@ -191,7 +203,7 @@ const Home = () => {
       {/* Event Banner Section */}
       <EventBanner />
 
-      {/* Random Products Section */}
+      {/* Discover More Products Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
@@ -204,21 +216,19 @@ const Home = () => {
               <FaArrowRight className="ml-2" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {randomProducts.map((product) => (
-              <Link
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {discoverProducts.map((product) => (
+              <ProductCard
                 key={product._id}
-                to={`/products/${product._id}`}
-                className="block bg-white rounded-lg shadow hover:shadow-lg transition-transform duration-300 transform hover:scale-105 p-4 h-full"
-              >
-                <img
-                  src={product.images && product.images[0]?.url ? product.images[0].url : '/product-images/default.webp'}
-                  alt={product.name}
-                  className="w-full h-40 object-contain mb-4 rounded"
-                />
-                <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
-                <div className="text-primary-600 font-bold text-lg">₹{product.price}</div>
-              </Link>
+                product={product}
+                isInWishlist={isInWishlist}
+                handleWishlist={handleWishlist}
+                handleAddToCart={() => handleAddToCart(product)}
+                showWishlist={true}
+                showAddToCart={true}
+                showRating={true}
+                showPrice={true}
+              />
             ))}
           </div>
         </div>
@@ -227,7 +237,7 @@ const Home = () => {
       {/* Brand Marquee Section */}
       <BrandMarquee />
 
-      {/* Discover More Products Section (Again) */}
+      {/* Products You Might Like Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
@@ -240,21 +250,19 @@ const Home = () => {
               <FaArrowRight className="ml-2" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {randomProducts.map((product) => (
-              <Link
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recommendedProducts.map((product) => (
+              <ProductCard
                 key={product._id}
-                to={`/products/${product._id}`}
-                className="block bg-white rounded-lg shadow hover:shadow-lg transition-transform duration-300 transform hover:scale-105 p-4 h-full"
-              >
-                <img
-                  src={product.images && product.images[0]?.url ? product.images[0].url : '/product-images/default.webp'}
-                  alt={product.name}
-                  className="w-full h-40 object-contain mb-4 rounded"
-                />
-                <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
-                <div className="text-primary-600 font-bold text-lg">₹{product.price}</div>
-              </Link>
+                product={product}
+                isInWishlist={isInWishlist}
+                handleWishlist={handleWishlist}
+                handleAddToCart={() => handleAddToCart(product)}
+                showWishlist={true}
+                showAddToCart={true}
+                showRating={true}
+                showPrice={true}
+              />
             ))}
           </div>
         </div>

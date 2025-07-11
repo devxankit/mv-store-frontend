@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import productAPI from '../api/productAPI';
 import { Link } from 'react-router-dom';
 
+// Helper to normalize category names for mapping
 const normalize = name =>
   name
     .toLowerCase()
@@ -9,20 +10,13 @@ const normalize = name =>
     .replace(/[^a-z0-9]/g, '')
     .trim();
 
-const demoImageMap = {
-  phone: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80',
-  clothes: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=400&q=80',
-  electronics: 'https://images.unsplash.com/photo-1519121782439-2c5f2c2a3b8a?auto=format&fit=crop&w=400&q=80',
-  clothingandfashion: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80',
-  homeandgarden: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80',
-  sportsandoutdoors: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80',
-  booksandmedia: 'https://images.unsplash.com/photo-1519121782439-2c5f2c2a3b8a?auto=format&fit=crop&w=400&q=80',
-  healthandbeauty: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80',
-  toysandgames: 'https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=400&q=80',
-  automotive: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80',
-  foodandbeverages: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-  jewelryandwatches: 'https://images.unsplash.com/photo-1519121782439-2c5f2c2a3b8a?auto=format&fit=crop&w=400&q=80',
-  petsupplies: 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=400&q=80',
+const categoryImageMap = {
+  electronics: './images/electronics.jpeg',
+  homeandkitchen: './images/home and kitchen.jpeg',
+  beautyandpersonalcare: './images/beauty and personal care.jpeg',
+  clothingshoesandjewelry: './images/clothing shoose.jpeg',
+  sportsandoutdoors: './images/sport and outdoor.jpeg',
+  toysandgames: './images/toy and game.jpeg',
 };
 
 const Categories = () => {
@@ -64,7 +58,7 @@ const Categories = () => {
                     <img
                       src={
                         subcat.image ||
-                        demoImageMap[normalize(subcat.name)] ||
+                        categoryImageMap[normalize(subcat.name)] ||
                         '/default-category.png'
                       }
                       alt={subcat.name || 'Subcategory'}
@@ -98,7 +92,7 @@ const Categories = () => {
                   <img
                     src={
                       cat.image ||
-                      demoImageMap[normalize(cat.name)] ||
+                      categoryImageMap[normalize(cat.name)] ||
                       '/default-category.png'
                     }
                     alt={cat.name || 'Category'}

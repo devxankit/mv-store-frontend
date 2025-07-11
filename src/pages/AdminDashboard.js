@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUsers, FaBox, FaDollarSign, FaChartLine, FaEdit, FaTrash, FaEye, FaPlus, FaStore, FaCheck, FaTimes, FaImage, FaStar as FaStarFilled, FaRegStar as FaStarOutline } from 'react-icons/fa';
+import { FaUsers, FaBox, FaDollarSign, FaChartLine, FaEdit, FaTrash, FaEye, FaPlus, FaStore, FaCheck, FaTimes, FaImage, FaStar as FaStarFilled, FaRegStar as FaStarOutline, FaCompass, FaRegCompass, FaThumbsUp, FaRegThumbsUp } from 'react-icons/fa';
 import { formatINR } from '../utils/formatCurrency';
 import sellerAPI from '../api/sellerAPI';
 import productAPI from '../api/productAPI';
@@ -318,6 +318,37 @@ const AdminDashboard = () => {
       }
       setProducts(products.map(p => p._id === id ? res.data.product : p));
       dispatch(fetchFeaturedProducts());
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Discover/un-discover product
+  const handleDiscoverProduct = async (id, isDiscover) => {
+    setActionLoading(id + 'discover');
+    try {
+      let res;
+      if (isDiscover) {
+        res = await productAPI.unsetDiscoverProduct(id);
+      } else {
+        res = await productAPI.setDiscoverProduct(id);
+      }
+      setProducts(products.map(p => p._id === id ? res.data : p));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  // Recommend/un-recommend product
+  const handleRecommendProduct = async (id, isRecommended) => {
+    setActionLoading(id + 'recommend');
+    try {
+      let res;
+      if (isRecommended) {
+        res = await productAPI.unsetRecommendedProduct(id);
+      } else {
+        res = await productAPI.setRecommendedProduct(id);
+      }
+      setProducts(products.map(p => p._id === id ? res.data : p));
     } finally {
       setActionLoading(null);
     }
@@ -716,89 +747,94 @@ const AdminDashboard = () => {
               {loadingProducts ? (
                 <div className="text-center py-8">Loading...</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Product</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Seller</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Price</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Stock</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Category</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(Array.isArray(products) ? products : []).map((product) => (
-                        <tr key={product._id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center">
-                              <img
-                                src={product.images && product.images[0] ? product.images[0].url : '/product-images/default.webp'}
-                                alt={product.name}
-                                className="w-12 h-12 object-cover rounded mr-3"
-                              />
-                              <span className="font-medium text-gray-800">{product.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">{product.seller?.shopName || product.seller || 'N/A'}</td>
-                          <td className="py-3 px-4 font-medium">{formatINR(product.price)}</td>
-                          <td className="py-3 px-4">{product.stock}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
-                              {product.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">{product.category || 'N/A'}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-2">
-                              <button
-                                className={product.isFeatured ? "text-yellow-500 hover:text-yellow-600" : "text-gray-400 hover:text-yellow-500"}
-                                title={product.isFeatured ? "Unfeature Product" : "Feature Product"}
-                                onClick={() => handleFeatureProduct(product._id, product.isFeatured)}
-                                disabled={actionLoading === product._id + 'feature'}
-                              >
-                                {product.isFeatured ? <FaStarFilled /> : <FaStarOutline />}
-                              </button>
-                              {!product.isApproved && (
-                                <>
-                                  <button
-                                    className="text-green-600 hover:text-green-800"
-                                    disabled={actionLoading === product._id + 'approve'}
-                                    onClick={() => handleApprove(product._id)}
-                                  >
-                                    {actionLoading === product._id + 'approve' ? '...' : <FaCheck />}
-                                  </button>
-                                  <button
-                                    className="text-red-600 hover:text-red-800"
-                                    disabled={actionLoading === product._id + 'reject'}
-                                    onClick={() => setRejectModal({ open: true, product })}
-                                  >
-                                    <FaTimes />
-                                  </button>
-                                </>
-                              )}
+                <div className="space-y-4">
+                  {(Array.isArray(products) ? products : []).map((product) => (
+                    <div
+                      key={product._id}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-3 hover:shadow-md transition"
+                    >
+                      {/* First line: main info */}
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                          <img
+                            src={product.images && product.images[0] ? product.images[0].url : '/product-images/default.webp'}
+                            alt={product.name}
+                            className="w-14 h-14 object-cover rounded"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                          </div>
+                          <div className="font-bold text-gray-800 whitespace-nowrap">{formatINR(product.price)}</div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>{product.isActive ? 'Active' : 'Inactive'}</span>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0 justify-end md:justify-start">
+                          <button
+                            className={product.isFeatured ? "text-yellow-500 hover:text-yellow-600" : "text-gray-400 hover:text-yellow-500"}
+                            title={product.isFeatured ? "Unfeature Product" : "Feature Product"}
+                            onClick={() => handleFeatureProduct(product._id, product.isFeatured)}
+                            disabled={actionLoading === product._id + 'feature'}
+                          >
+                            {product.isFeatured ? <FaStarFilled /> : <FaStarOutline />}
+                          </button>
+                          <button
+                            className={product.isDiscover ? "text-blue-500 hover:text-blue-600" : "text-gray-400 hover:text-blue-500"}
+                            title={product.isDiscover ? "Remove from Discover" : "Add to Discover"}
+                            onClick={() => handleDiscoverProduct(product._id, product.isDiscover)}
+                            disabled={actionLoading === product._id + 'discover'}
+                          >
+                            {product.isDiscover ? <FaCompass /> : <FaRegCompass />}
+                          </button>
+                          <button
+                            className={product.isRecommended ? "text-green-500 hover:text-green-600" : "text-gray-400 hover:text-green-500"}
+                            title={product.isRecommended ? "Remove from Recommended" : "Add to Recommended"}
+                            onClick={() => handleRecommendProduct(product._id, product.isRecommended)}
+                            disabled={actionLoading === product._id + 'recommend'}
+                          >
+                            {product.isRecommended ? <FaThumbsUp /> : <FaRegThumbsUp />}
+                          </button>
+                          {!product.isApproved && (
+                            <>
                               <button
                                 className="text-green-600 hover:text-green-800"
-                                onClick={() => handleEdit(product)}
-                                disabled={actionLoading === product._id + 'edit'}
+                                disabled={actionLoading === product._id + 'approve'}
+                                onClick={() => handleApprove(product._id)}
                               >
-                                <FaEdit />
+                                {actionLoading === product._id + 'approve' ? '...' : <FaCheck />}
                               </button>
                               <button
                                 className="text-red-600 hover:text-red-800"
-                                onClick={() => handleDelete(product._id)}
-                                disabled={actionLoading === product._id + 'delete'}
+                                disabled={actionLoading === product._id + 'reject'}
+                                onClick={() => setRejectModal({ open: true, product })}
                               >
-                                <FaTrash />
+                                <FaTimes />
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            </>
+                          )}
+                          <button
+                            className="text-green-600 hover:text-green-800"
+                            onClick={() => handleEdit(product)}
+                            disabled={actionLoading === product._id + 'edit'}
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            className="text-red-600 hover:text-red-800"
+                            onClick={() => handleDelete(product._id)}
+                            disabled={actionLoading === product._id + 'delete'}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Second line: secondary info */}
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400 mt-2 pl-0 md:pl-20">
+                        <span title={product._id} className="cursor-pointer">ID: {product._id.slice(0, 4)}...{product._id.slice(-4)}</span>
+                        <span title={product.seller?._id || product.seller} className="cursor-pointer">Seller: {product.seller?.shopName || product.seller || 'N/A'}</span>
+                        <span>Stock: {product.stock}</span>
+                        <span>Category: {product.category || 'N/A'}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
