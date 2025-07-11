@@ -92,6 +92,61 @@ const productAPI = {
   deleteReview: (productId) => {
     return axiosInstance.delete(`/products/${productId}/reviews`);
   },
+
+  // Variant management
+  getProductVariant: (productId, variantCombination) => {
+    return axiosInstance.post(`/products/${productId}/variant`, { variantCombination });
+  },
+
+  // Add variant to product
+  addVariant: (productId, variantData) => {
+    return axiosInstance.post(`/products/${productId}/variants`, variantData);
+  },
+
+  // Update variant option
+  updateVariantOption: (productId, variantData) => {
+    return axiosInstance.put(`/products/${productId}/variants`, variantData);
+  },
+
+  // Delete variant option
+  deleteVariantOption: (productId, variantData) => {
+    return axiosInstance.delete(`/products/${productId}/variants`, { data: variantData });
+  },
+
+  // Feature a product (admin only)
+  featureProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/feature`);
+  },
+
+  // Unfeature a product (admin only)
+  unfeatureProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/unfeature`);
+  },
+
+  // Set a product as event product (admin only)
+  setEventProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/event-product`);
+  },
+
+  // Unset a product as event product (admin only)
+  unsetEventProduct: (productId) => {
+    return axiosInstance.patch(`/products/${productId}/unevent-product`);
+  },
+
+  // Create or update event banner (admin only)
+  createOrUpdateEventBanner: (data) => {
+    return axiosInstance.post('/products/event-banner', data);
+  },
+
+  // Get event banner (public)
+  getEventBanner: () => {
+    return axiosInstance.get('/products/event-banner');
+  },
+
+  // Delete event banner (admin only)
+  deleteEventBanner: () => {
+    return axiosInstance.delete('/products/event-banner');
+  },
 };
 
 export default productAPI; 

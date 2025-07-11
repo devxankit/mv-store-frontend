@@ -22,6 +22,9 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceTimeout = useRef();
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -73,12 +76,37 @@ const Header = () => {
     };
   }, [isAuthenticated, user, dispatch]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
-      setSearchTerm('');
+  const fetchSuggestions = async (term) => {
+    if (!term.trim()) {
+      setSuggestions([]);
+      return;
     }
+    try {
+      const res = await axiosInstance.get(`/products/search?query=${encodeURIComponent(term)}`);
+      setSuggestions(res.data || []);
+    } catch (err) {
+      setSuggestions([]);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setSearchTerm(e.target.value);
+    setShowSuggestions(true);
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      fetchSuggestions(e.target.value);
+    }, 300);
+  };
+
+  const handleSuggestionClick = (id) => {
+    setShowSuggestions(false);
+    setSearchTerm('');
+    setSuggestions([]);
+    navigate(`/products/${id}`);
+  };
+
+  const handleBlur = () => {
+    setTimeout(() => setShowSuggestions(false), 150);
   };
 
   const handleLogout = () => {
@@ -96,6 +124,15 @@ const Header = () => {
     setIsUserMenuOpen(!isUserMenuOpen);
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+      setShowSuggestions(false);
+      setSuggestions([]);
+    }
+  };
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
@@ -109,7 +146,10 @@ const Header = () => {
               <Link to="/" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200">Home</Link>
               <Link to="/products" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">Products</Link>
               <Link to="/categories" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">Categories</Link>
-              <Link to="/vendor-registration" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">Become a Vendor</Link>
+              {/* Conditionally render Become a Vendor */}
+              {(!isAuthenticated || (user && user.role !== 'seller') || (user && user.role === 'admin')) && (
+                <Link to="/vendor-registration" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">Become a Vendor</Link>
+              )}
             </nav>
           </div>
 
@@ -121,9 +161,33 @@ const Header = () => {
                   type="text"
                   placeholder="Search products..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleInputChange}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={handleBlur}
                   className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all duration-200 shadow-sm group-focus-within:shadow-md bg-gray-50"
                 />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                    {suggestions.map((product) => (
+                      <div
+                        key={product._id}
+                        className="flex items-center px-4 py-2 cursor-pointer hover:bg-primary-50"
+                        onMouseDown={() => handleSuggestionClick(product._id)}
+                      >
+                        {product.images && product.images[0]?.url && (
+                          <img src={product.images[0].url} alt={product.name} className="w-10 h-10 object-cover rounded mr-3" />
+                        )}
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                          <div className="text-xs text-gray-500">₹{product.price}</div>
+                        </div>
+                        {product.numReviews > 0 && (
+                          <div className="ml-2 text-xs text-yellow-600">★ {product.numReviews} reviews</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <button
                   type="submit"
                   className="absolute right-0 top-0 mt-2 mr-3 text-gray-400 hover:text-primary-600 transition-colors duration-200"
@@ -242,7 +306,10 @@ const Header = () => {
             <Link to="/" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Home</Link>
             <Link to="/products" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Products</Link>
             <Link to="/categories" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Categories</Link>
-            <Link to="/vendor-registration" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Become a Vendor</Link>
+            {/* Conditionally render Become a Vendor */}
+            {(!isAuthenticated || (user && user.role !== 'seller') || (user && user.role === 'admin')) && (
+              <Link to="/vendor-registration" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Become a Vendor</Link>
+            )}
             <Link to="/chat" className="nav-link flex items-center relative px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
               <FaComments className="mr-1" /> Chat
               {totalUnread > 0 && (

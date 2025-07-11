@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaEye, FaChartLine, FaBox, FaDollarSign, FaUsers } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaEye, FaChartLine, FaBox, FaDollarSign, FaUsers, FaCog, FaTimes } from 'react-icons/fa';
 import { formatINR } from '../utils/formatCurrency';
 import sellerAPI from '../api/sellerAPI';
 import axiosInstance from '../api/axiosConfig';
 import productAPI from '../api/productAPI';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchOrders } from '../redux/slices/orderSlice';
+import VariantManager from '../components/common/VariantManager';
 
 const ORDER_STATUSES = [
   'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'
@@ -104,7 +105,7 @@ const SellerDashboard = () => {
     images: [{ url: '' }],
   });
   const [error, setError] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
   const [categories, setCategories] = useState([]);
 
   const dispatch = useDispatch();
@@ -135,6 +136,10 @@ const SellerDashboard = () => {
 
   // Add editLoading state
   const [editLoading, setEditLoading] = useState(false);
+
+  // Add variant management state
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState(null);
+  const [showVariantModal, setShowVariantModal] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -200,12 +205,15 @@ const SellerDashboard = () => {
     formData.append('subCategory', newProduct.subCategory);
     formData.append('features', newProduct.features);
     formData.append('specifications', JSON.stringify(newProduct.specifications.filter(s => s.key && s.value)));
-    if (imageFile) formData.append('image', imageFile);
+    imageFiles.forEach((file, idx) => {
+      formData.append('images', file);
+    });
     try {
       const res = await sellerAPI.createProduct(formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setProducts([res.data, ...products]);
       setShowModal(false);
       setNewProduct({ name: '', description: '', price: '', comparePrice: '', stock: '', brand: '', sku: '', mainCategory: '', subCategory: '', features: '', specifications: [{ key: '', value: '' }], images: [{ url: '' }] });
+      setImageFiles([]);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add product');
     }
@@ -331,6 +339,26 @@ const SellerDashboard = () => {
       }
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const handleManageVariants = (product) => {
+    setSelectedProductForVariants(product);
+    setShowVariantModal(true);
+  };
+
+  const handleVariantUpdate = async () => {
+    // Refresh the product data after variant changes
+    if (selectedProductForVariants) {
+      try {
+        const res = await productAPI.getProductById(selectedProductForVariants._id);
+        setSelectedProductForVariants(res.data);
+        // Also refresh the products list
+        const productsRes = await sellerAPI.getProducts();
+        setProducts(productsRes.data);
+      } catch (error) {
+        console.error('Failed to refresh product data:', error);
+      }
     }
   };
 
@@ -577,7 +605,45 @@ const SellerDashboard = () => {
                         ))}
                         <button type="button" onClick={() => setNewProduct({ ...newProduct, specifications: [...newProduct.specifications, { key: '', value: '' }] })} className="text-blue-600 mb-2">+ Add Specification</button>
                       </div>
-                      <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} required />
+                      <input type="file" accept="image/*" multiple onChange={e => {
+                        const newFiles = Array.from(e.target.files);
+                        // Combine existing and new files, filter duplicates by name+size, and limit to 5
+                        setImageFiles(prev => {
+                          const combined = [...prev, ...newFiles];
+                          const unique = [];
+                          const seen = new Set();
+                          for (const file of combined) {
+                            const key = file.name + '_' + file.size;
+                            if (!seen.has(key)) {
+                              unique.push(file);
+                              seen.add(key);
+                            }
+                            if (unique.length === 5) break;
+                          }
+                          return unique;
+                        });
+                      }} required />
+                      {imageFiles.length > 0 && (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {imageFiles.map((file, idx) => (
+                            <div key={idx} className="relative group w-16 h-16">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${idx + 1}`}
+                                className="w-16 h-16 object-cover rounded border"
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-0 right-0 bg-white bg-opacity-80 rounded-full p-1 text-xs text-red-600 hover:text-red-800 group-hover:visible invisible"
+                                onClick={() => setImageFiles(imageFiles.filter((_, i) => i !== idx))}
+                                title="Remove"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <button type="submit" className="btn-primary w-full">Add Product</button>
                     </form>
                   </div>
@@ -625,6 +691,7 @@ const SellerDashboard = () => {
                           <td className="py-3 px-4">
                             <div className="flex space-x-2">
                               <button className="text-green-600 hover:text-green-800" onClick={() => handleEditProduct(product)}><FaEdit /></button>
+                              <button className="text-blue-600 hover:text-blue-800" onClick={() => handleManageVariants(product)} title="Manage Variants"><FaCog /></button>
                               <button className="text-red-600 hover:text-red-800" onClick={() => handleDeleteProduct(product._id)}><FaTrash /></button>
                             </div>
                           </td>
@@ -891,6 +958,31 @@ const SellerDashboard = () => {
               <input type="file" accept="image/*" onChange={e => setEditProduct({ ...editProduct, imageFile: e.target.files[0] })} />
               <button type="submit" className="btn-primary w-full" disabled={editLoading}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Variant Management Modal */}
+      {showVariantModal && selectedProductForVariants && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Manage Variants - {selectedProductForVariants.name}</h2>
+              <button
+                onClick={() => {
+                  setShowVariantModal(false);
+                  setSelectedProductForVariants(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <VariantManager
+              product={selectedProductForVariants}
+              onVariantUpdate={handleVariantUpdate}
+            />
           </div>
         </div>
       )}

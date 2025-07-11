@@ -18,7 +18,13 @@ export const addToCartAsync = createAsyncThunk(
   'cart/addToCart',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.addToCart(payload);
+      // Handle both old format (product, quantity) and new format (product, quantity, selectedVariants)
+      const cartPayload = {
+        product: payload.product,
+        quantity: payload.quantity,
+        selectedVariants: payload.selectedVariants || {}
+      };
+      const response = await orderAPI.addToCart(cartPayload);
       return response.data.cart;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to add to cart');

@@ -37,6 +37,10 @@ const Categories = () => {
     }).catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
+
   const mainCategories = categories.filter(cat => !cat.parentCategory);
   const subcategories = selectedMain ? categories.filter(cat => cat.parentCategory === selectedMain) : [];
 

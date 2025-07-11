@@ -11,20 +11,23 @@ import {
   FaHeadset,
   FaCreditCard
 } from 'react-icons/fa';
-import { fetchFeaturedProducts } from '../redux/slices/productSlice';
+import { fetchFeaturedProducts, fetchProducts } from '../redux/slices/productSlice';
 import { addToCartAsync } from '../redux/slices/cartSlice';
 import { formatINR } from '../utils/formatCurrency';
 import productAPI from '../api/productAPI';
 import CategoriesGrid from '../components/common/CategoriesGrid';
 import HeroCarousel from '../components/common/HeroCarousel';
+import EventBanner from '../components/common/EventBanner';
+import BrandMarquee from '../components/common/BrandMarquee';
 
 const Home = () => {
   const dispatch = useDispatch();
-  const { featuredProducts, loading } = useSelector((state) => state.products);
+  const { featuredProducts, loading, products } = useSelector((state) => state.products);
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     dispatch(fetchFeaturedProducts());
+    dispatch(fetchProducts());
     productAPI.getCategories().then(res => setCategories(res.data)).catch(() => setCategories([]));
   }, [dispatch]);
 
@@ -60,6 +63,17 @@ const Home = () => {
   // Helper to get image for product
   const getProductImage = (name) => `/product-images/${slugify(name)}.jpg`;
 
+  // Filter only main categories (no parentCategory)
+  const mainCategories = categories.filter(cat => !cat.parentCategory).slice(0, 6);
+
+  // Helper to get 8 random products
+  const getRandomProducts = () => {
+    if (!Array.isArray(products) || products.length === 0) return [];
+    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 8);
+  };
+  const randomProducts = getRandomProducts();
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -85,8 +99,25 @@ const Home = () => {
       {/* Categories Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
-          <CategoriesGrid categories={categories} />
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-3xl font-bold text-center w-full md:w-auto">Shop by Category</h2>
+            <Link
+              to="/categories"
+              className="hidden md:flex items-center text-primary-600 hover:text-primary-700 font-semibold ml-4"
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              View All Categories <FaArrowRight className="ml-2" />
+            </Link>
+          </div>
+          <CategoriesGrid categories={mainCategories} />
+          <div className="flex justify-center mt-8 md:hidden">
+            <Link
+              to="/categories"
+              className="flex items-center text-primary-600 hover:text-primary-700 font-semibold text-lg"
+            >
+              View All Categories <FaArrowRight className="ml-2" />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -154,6 +185,78 @@ const Home = () => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Event Banner Section */}
+      <EventBanner />
+
+      {/* Random Products Section */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-3xl font-bold">Discover More Products</h2>
+            <Link
+              to="/products"
+              className="text-primary-600 hover:text-primary-700 font-semibold flex items-center"
+            >
+              View All Products
+              <FaArrowRight className="ml-2" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {randomProducts.map((product) => (
+              <Link
+                key={product._id}
+                to={`/products/${product._id}`}
+                className="block bg-white rounded-lg shadow hover:shadow-lg transition-transform duration-300 transform hover:scale-105 p-4 h-full"
+              >
+                <img
+                  src={product.images && product.images[0]?.url ? product.images[0].url : '/product-images/default.webp'}
+                  alt={product.name}
+                  className="w-full h-40 object-contain mb-4 rounded"
+                />
+                <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
+                <div className="text-primary-600 font-bold text-lg">₹{product.price}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Brand Marquee Section */}
+      <BrandMarquee />
+
+      {/* Discover More Products Section (Again) */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-3xl font-bold">Products You Might Like</h2>
+            <Link
+              to="/products"
+              className="text-primary-600 hover:text-primary-700 font-semibold flex items-center"
+            >
+              View All Products
+              <FaArrowRight className="ml-2" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {randomProducts.map((product) => (
+              <Link
+                key={product._id}
+                to={`/products/${product._id}`}
+                className="block bg-white rounded-lg shadow hover:shadow-lg transition-transform duration-300 transform hover:scale-105 p-4 h-full"
+              >
+                <img
+                  src={product.images && product.images[0]?.url ? product.images[0].url : '/product-images/default.webp'}
+                  alt={product.name}
+                  className="w-full h-40 object-contain mb-4 rounded"
+                />
+                <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
+                <div className="text-primary-600 font-bold text-lg">₹{product.price}</div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

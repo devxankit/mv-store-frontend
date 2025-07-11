@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FaUsers, FaBox, FaDollarSign, FaChartLine, FaEdit, FaTrash, FaEye, FaPlus, FaStore, FaCheck, FaTimes, FaImage } from 'react-icons/fa';
+import { FaUsers, FaBox, FaDollarSign, FaChartLine, FaEdit, FaTrash, FaEye, FaPlus, FaStore, FaCheck, FaTimes, FaImage, FaStar as FaStarFilled, FaRegStar as FaStarOutline } from 'react-icons/fa';
 import { formatINR } from '../utils/formatCurrency';
 import sellerAPI from '../api/sellerAPI';
 import productAPI from '../api/productAPI';
 import axiosInstance from '../api/axiosConfig';
+import { useDispatch } from 'react-redux';
+import { fetchFeaturedProducts } from '../redux/slices/productSlice';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -45,6 +47,13 @@ const AdminDashboard = () => {
   const [categoryError, setCategoryError] = useState('');
 
   const [selectedMainCat, setSelectedMainCat] = useState('');
+
+  const [eventBanner, setEventBanner] = useState(null);
+  const [eventForm, setEventForm] = useState({ title: '', description: '', endDate: '', product: '' });
+  const [eventLoading, setEventLoading] = useState(false);
+  const [eventError, setEventError] = useState('');
+
+  const dispatch = useDispatch();
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -128,6 +137,20 @@ const AdminDashboard = () => {
       .then(res => setCategories(res.data))
       .catch(() => setCategories([]))
       .finally(() => setLoadingCategories(false));
+  }, []);
+
+  useEffect(() => {
+    productAPI.getEventBanner().then(res => {
+      setEventBanner(res.data);
+      if (res.data) {
+        setEventForm({
+          title: res.data.title,
+          description: res.data.description,
+          endDate: res.data.endDate ? res.data.endDate.slice(0, 16) : '',
+          product: res.data.product?._id || ''
+        });
+      }
+    });
   }, []);
 
   const handleVendorAction = async (vendorId, action) => {
@@ -283,6 +306,59 @@ const AdminDashboard = () => {
     }
   };
 
+  // Feature/unfeature product
+  const handleFeatureProduct = async (id, isFeatured) => {
+    setActionLoading(id + 'feature');
+    try {
+      let res;
+      if (isFeatured) {
+        res = await productAPI.unfeatureProduct(id);
+      } else {
+        res = await productAPI.featureProduct(id);
+      }
+      setProducts(products.map(p => p._id === id ? res.data.product : p));
+      dispatch(fetchFeaturedProducts());
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleEventFormChange = (e) => {
+    const { name, value } = e.target;
+    setEventForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEventFormSubmit = async (e) => {
+    e.preventDefault();
+    setEventLoading(true);
+    setEventError('');
+    try {
+      await productAPI.createOrUpdateEventBanner(eventForm);
+      await productAPI.setEventProduct(eventForm.product);
+      const res = await productAPI.getEventBanner();
+      setEventBanner(res.data);
+    } catch (err) {
+      setEventError(err.response?.data?.message || 'Failed to update event banner');
+    } finally {
+      setEventLoading(false);
+    }
+  };
+
+  const handleDeleteEventBanner = async () => {
+    if (!window.confirm('Are you sure you want to delete the event banner?')) return;
+    setEventLoading(true);
+    setEventError('');
+    try {
+      await productAPI.deleteEventBanner();
+      setEventBanner(null);
+      setEventForm({ title: '', description: '', endDate: '', product: '' });
+    } catch (err) {
+      setEventError(err.response?.data?.message || 'Failed to delete event banner');
+    } finally {
+      setEventLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -346,7 +422,7 @@ const AdminDashboard = () => {
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex space-x-8 px-6 admin-tabs">
             <button
               onClick={() => setActiveTab('overview')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -406,6 +482,16 @@ const AdminDashboard = () => {
               }`}
             >
               Categories
+            </button>
+            <button
+              onClick={() => setActiveTab('eventBanner')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'eventBanner'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Event Banner
             </button>
           </nav>
         </div>
@@ -667,6 +753,14 @@ const AdminDashboard = () => {
                           <td className="py-3 px-4">{product.category || 'N/A'}</td>
                           <td className="py-3 px-4">
                             <div className="flex space-x-2">
+                              <button
+                                className={product.isFeatured ? "text-yellow-500 hover:text-yellow-600" : "text-gray-400 hover:text-yellow-500"}
+                                title={product.isFeatured ? "Unfeature Product" : "Feature Product"}
+                                onClick={() => handleFeatureProduct(product._id, product.isFeatured)}
+                                disabled={actionLoading === product._id + 'feature'}
+                              >
+                                {product.isFeatured ? <FaStarFilled /> : <FaStarOutline />}
+                              </button>
                               {!product.isApproved && (
                                 <>
                                   <button
@@ -928,6 +1022,63 @@ const AdminDashboard = () => {
               )}
             </div>
           )}
+
+          {/* Event Banner Tab */}
+          {activeTab === 'eventBanner' && (
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-6">Event Banner Management</h3>
+              <form onSubmit={handleEventFormSubmit} className="space-y-4 max-w-xl w-full">
+                <div>
+                  <label className="block font-medium mb-1">Event Title</label>
+                  <input type="text" name="title" className="form-input w-full" value={eventForm.title} onChange={handleEventFormChange} required />
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Event Description</label>
+                  <textarea name="description" className="form-input w-full" value={eventForm.description} onChange={handleEventFormChange} required />
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Event End Date/Time</label>
+                  <input type="datetime-local" name="endDate" className="form-input w-full" value={eventForm.endDate} onChange={handleEventFormChange} required />
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Select Product for Banner</label>
+                  <select name="product" className="form-input w-full" value={eventForm.product} onChange={handleEventFormChange} required>
+                    <option value="">Select a product</option>
+                    {products.filter(p => p.isApproved).map(p => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {eventError && <div className="text-red-500">{eventError}</div>}
+                <button type="submit" className="btn-primary" disabled={eventLoading}>{eventLoading ? 'Saving...' : 'Save Event Banner'}</button>
+              </form>
+              {eventBanner && (
+                <div className="mt-8 p-4 bg-gray-50 rounded shadow w-full overflow-x-auto">
+                  <h4 className="font-bold mb-2">Current Event Banner</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div>
+                      <div><span className="font-semibold">Title:</span> {eventBanner.title}</div>
+                      <div><span className="font-semibold">Description:</span> {eventBanner.description}</div>
+                      <div><span className="font-semibold">End:</span> {new Date(eventBanner.endDate).toLocaleString()}</div>
+                      <div><span className="font-semibold">Product:</span> {eventBanner.product?.name}</div>
+                    </div>
+                    <div className="flex justify-center md:justify-end">
+                      {eventBanner.product?.images && eventBanner.product.images[0]?.url && (
+                        <img src={eventBanner.product.images[0].url} alt={eventBanner.product.name} className="w-32 h-24 object-contain rounded shadow" />
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    className="mt-6 bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 font-semibold shadow"
+                    onClick={handleDeleteEventBanner}
+                    disabled={eventLoading}
+                  >
+                    Delete Event Banner
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -990,6 +1141,20 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Responsive fix for tab navigation */}
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-tabs {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+          }
+          .admin-tabs button {
+            flex: 1 1 45%;
+            min-width: 120px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

@@ -4,10 +4,18 @@ import { formatINR } from '../../utils/formatCurrency';
 import { useSelector } from 'react-redux';
 import productAPI from '../../api/productAPI';
 import { useNavigate } from 'react-router-dom';
+import VariantSelector from './VariantSelector';
 
 const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedVariants, setSelectedVariants] = useState({});
+  const [currentVariantData, setCurrentVariantData] = useState({
+    price: product?.price || 0,
+    comparePrice: product?.comparePrice || 0,
+    stock: product?.stock || 0,
+    images: product?.images || []
+  });
   const [reviews, setReviews] = useState([]);
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(0);
@@ -21,8 +29,47 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
   const navigate = useNavigate();
 
   const handleQuantityChange = (newQuantity) => {
-    if (newQuantity >= 1 && newQuantity <= (product.stock || 1)) {
+    const maxStock = currentVariantData.stock || product.stock || 1;
+    if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
+    }
+  };
+
+  const handleVariantChange = (newSelectedVariants) => {
+    setSelectedVariants(newSelectedVariants);
+    
+    // Find the selected variant option to update current data
+    if (product.variants && product.variants.length > 0) {
+      let selectedOption = null;
+      for (const variant of product.variants) {
+        const selectedValue = newSelectedVariants[variant.name];
+        if (selectedValue) {
+          const option = variant.options.find(opt => opt.value === selectedValue);
+          if (option) {
+            selectedOption = option;
+            break;
+          }
+        }
+      }
+
+      if (selectedOption) {
+        setCurrentVariantData({
+          price: selectedOption.price,
+          comparePrice: selectedOption.comparePrice || 0,
+          stock: selectedOption.stock,
+          images: selectedOption.images && selectedOption.images.length > 0 
+            ? selectedOption.images 
+            : product.images || []
+        });
+        setSelectedImage(0);
+      } else {
+        setCurrentVariantData({
+          price: product.price,
+          comparePrice: product.comparePrice || 0,
+          stock: product.stock,
+          images: product.images || []
+        });
+      }
     }
   };
 
@@ -57,11 +104,11 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
   return (
     <div className="container mx-auto px-2 sm:px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Left: Vertical Image Gallery */}
+        {/* Left: Vertical Image Gallery and Features/Specs */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Thumbnails */}
           <div className="flex lg:flex-col gap-2 order-2 lg:order-1 mb-4 lg:mb-0">
-            {product.images && product.images.map((img, idx) => (
+            {currentVariantData.images && currentVariantData.images.map((img, idx) => (
               <button
                 key={idx}
                 onClick={() => setSelectedImage(idx)}
@@ -75,13 +122,52 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
               </button>
             ))}
           </div>
-          {/* Main Image */}
-          <div className="flex-1 order-1 lg:order-2">
+          {/* Main Image and Features/Specs */}
+          <div className="flex-1 order-1 lg:order-2 flex flex-col gap-6">
             <img
-              src={product.images && product.images[selectedImage] ? product.images[selectedImage].url : '/product-images/default.webp'}
+              src={currentVariantData.images && currentVariantData.images[selectedImage] ? currentVariantData.images[selectedImage].url : '/product-images/default.webp'}
               alt={product.name}
               className="w-full h-96 object-contain rounded-lg bg-white border"
             />
+            {/* Key Features */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Key Features</h3>
+              <ul className="space-y-2">
+                {Array.isArray(product.features) && product.features.length > 0 ? (
+                  product.features.map((feature, index) => (
+                    <li key={index} className="flex items-center text-gray-600">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                      {feature}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No features provided.</li>
+                )}
+              </ul>
+            </div>
+            {/* Specifications */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Specifications</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.isArray(currentVariantData.specifications) && currentVariantData.specifications.length > 0 ? (
+                  currentVariantData.specifications.map((spec, idx) => (
+                    <div key={spec._id || idx} className="flex justify-between py-2 border-b border-gray-200">
+                      <span className="font-medium text-gray-700">{spec.key}</span>
+                      <span className="text-gray-600">{spec.value}</span>
+                    </div>
+                  ))
+                ) : Array.isArray(product.specifications) && product.specifications.length > 0 ? (
+                  product.specifications.map((spec, idx) => (
+                    <div key={spec._id || idx} className="flex justify-between py-2 border-b border-gray-200">
+                      <span className="font-medium text-gray-700">{spec.key}</span>
+                      <span className="text-gray-600">{spec.value}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500">No specifications provided.</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -100,12 +186,12 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
             <span className="text-gray-600 text-sm">{product.rating || 0} ({product.numReviews || 0} reviews)</span>
           </div>
           <div className="flex items-end gap-3 mb-2">
-            <span className="text-3xl font-bold text-blue-600">{formatINR(product.price)}</span>
-            {product.comparePrice > product.price && (
-              <span className="text-lg text-gray-500 line-through">{formatINR(product.comparePrice)}</span>
+            <span className="text-3xl font-bold text-blue-600">{formatINR(currentVariantData.price)}</span>
+            {currentVariantData.comparePrice > currentVariantData.price && (
+              <span className="text-lg text-gray-500 line-through">{formatINR(currentVariantData.comparePrice)}</span>
             )}
-            {product.comparePrice > product.price && (
-              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold">{Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)}% OFF</span>
+            {currentVariantData.comparePrice > currentVariantData.price && (
+              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold">{Math.round(((currentVariantData.comparePrice - currentVariantData.price) / currentVariantData.comparePrice) * 100)}% OFF</span>
             )}
           </div>
           {/* Offers/Icons */}
@@ -116,12 +202,20 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
             <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded text-gray-800 text-xs font-medium"><FaUndo /> 30 Day Returns</div>
           </div>
           <div className="mb-2">
-            {product.stock > 0 ? (
-              <span className="text-green-600 font-medium">In Stock ({product.stock} available)</span>
+            {currentVariantData.stock > 0 ? (
+              <span className="text-green-600 font-medium">In Stock ({currentVariantData.stock} available)</span>
             ) : (
               <span className="text-red-600 font-medium">Out of Stock</span>
             )}
           </div>
+          {/* Variant Selector */}
+          <VariantSelector
+            product={product}
+            selectedVariants={selectedVariants}
+            onVariantChange={handleVariantChange}
+            className="mb-4"
+          />
+
           <div className="flex items-center gap-3 mb-4">
             <label className="block text-sm font-medium text-gray-700">Quantity</label>
             <div className="flex items-center border border-gray-300 rounded-lg w-32">
@@ -134,17 +228,17 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
               <button
                 onClick={() => handleQuantityChange(quantity + 1)}
                 className="px-3 py-2 text-gray-600 hover:text-gray-800"
-                disabled={quantity >= product.stock}
+                disabled={quantity >= currentVariantData.stock}
               >+</button>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <button
               onClick={() => {
-                console.log('Add to Cart button clicked', { onAddToCart, product, quantity });
-                onAddToCart && onAddToCart(product, quantity);
+                console.log('Add to Cart button clicked', { onAddToCart, product, quantity, selectedVariants });
+                onAddToCart && onAddToCart(product, quantity, selectedVariants);
               }}
-              disabled={product.stock <= 0}
+              disabled={currentVariantData.stock <= 0}
               className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <FaShoppingCart /> Add to Cart
@@ -171,36 +265,6 @@ const ProductDetail = ({ product, onAddToCart, onWishlist, onShare }) => {
               💬 Chat with Seller{product.seller.shopName ? ` (${product.seller.shopName})` : ''}
             </button>
           )}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Key Features</h3>
-            <ul className="space-y-2">
-              {Array.isArray(product.features) && product.features.length > 0 ? (
-                product.features.map((feature, index) => (
-                  <li key={index} className="flex items-center text-gray-600">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
-                    {feature}
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500">No features provided.</li>
-              )}
-            </ul>
-          </div>
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Specifications</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Array.isArray(product.specifications) && product.specifications.length > 0 ? (
-                product.specifications.map((spec, idx) => (
-                  <div key={spec._id || idx} className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="font-medium text-gray-700">{spec.key}</span>
-                    <span className="text-gray-600">{spec.value}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-500">No specifications provided.</div>
-              )}
-            </div>
-          </div>
           <div className="bg-gray-50 rounded-lg p-4 flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2 text-gray-700"><FaSyncAlt className="text-blue-600" /> 10 days Service Centre Replacement</div>
             <div className="flex items-center gap-2 text-gray-700"><FaTruck className="text-blue-600" /> Free Delivery</div>

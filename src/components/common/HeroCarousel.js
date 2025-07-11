@@ -9,21 +9,21 @@ import 'swiper/css/pagination';
 
 const slides = [
   {
-    image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=1500&q=80',
+    image: './images/banner_1.png',
     headline: 'Discover Amazing Products',
     subheadline: 'Shop from thousands of verified sellers and find the best deals on quality products.',
     buttonText: 'Shop Now',
     buttonLink: '/products',
   },
   {
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1500&q=80',
+    image: './images/banner_3.png',
     headline: 'Trendy Collections',
     subheadline: 'Explore the latest trends and exclusive offers from top brands.',
     buttonText: 'Shop Now',
     buttonLink: '/products',
   },
   {
-    image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=1500&q=80',
+    image: './images/banner_2.png',
     headline: 'Quality Guaranteed',
     subheadline: 'Only the best products from trusted sellers, with easy returns.',
     buttonText: 'Shop Now',
