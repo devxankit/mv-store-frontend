@@ -140,7 +140,13 @@ const Header = () => {
           {/* Left: Logo & Main Nav */}
           <div className="flex items-center min-w-0">
             <Link to="/" className="flex items-center mr-3">
-              <span className="font-extrabold text-primary-600 text-lg md:text-xl tracking-tight whitespace-nowrap select-none">MV Store</span>
+              {/* <span className="font-extrabold text-primary-600 text-lg md:text-xl tracking-tight whitespace-nowrap select-none">MV Store</span> */}
+              <img 
+                src={process.env.PUBLIC_URL + "/images/logo.png"} 
+                alt="MV Store Logo" 
+                className="h-8 md:h-10 w-auto object-contain mr-2 select-none" 
+                style={{ maxHeight: '2.25rem' }} // matches md:text-xl
+              />
             </Link>
             <nav className="hidden md:flex items-center space-x-2 text-sm font-medium text-gray-700">
               <Link to="/" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200">Home</Link>
