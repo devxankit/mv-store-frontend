@@ -30,7 +30,8 @@ const Cart = () => {
   const availableItems = cartItems.filter(item => item.product && item.product.stock > 0);
   const unavailableItems = cartItems.filter(item => item.product && item.product.stock <= 0);
 
-  const subtotal = availableItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  // Add null checks for price calculations
+  const subtotal = availableItems.reduce((sum, item) => sum + ((item.product?.price ?? 0) * (item.quantity ?? 0)), 0);
   const shipping = subtotal > 100 ? 0 : 9.99;
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + shipping + tax;
