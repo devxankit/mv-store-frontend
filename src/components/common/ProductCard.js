@@ -52,7 +52,7 @@ const ProductCard = ({
         />
       </Link>
       {/* Details section: 60% height on mobile, default on desktop */}
-      <div className="flex-[3] sm:flex-none p-2 sm:p-4 flex flex-col flex-1">
+      <div className="flex-[3] sm:flex-none p-2 sm:p-4 flex flex-col">
         <Link to={`/products/${product._id}`}> 
           <h3 className="text-sm sm:text-lg font-bold text-gray-800 mb-0.5 sm:mb-2 hover:text-blue-600 transition-colors line-clamp-2">
             {product.name}
@@ -98,4 +98,4 @@ const ProductCard = ({
   );
 };
 
-export default ProductCard; 
+export default ProductCard;
