@@ -141,6 +141,10 @@ const SellerDashboard = () => {
   const [selectedProductForVariants, setSelectedProductForVariants] = useState(null);
   const [showVariantModal, setShowVariantModal] = useState(false);
 
+  // Add state for soldCount editing
+  const [soldCountEdits, setSoldCountEdits] = useState({});
+  const [soldCountLoading, setSoldCountLoading] = useState({});
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'active':
@@ -360,6 +364,21 @@ const SellerDashboard = () => {
         console.error('Failed to refresh product data:', error);
       }
     }
+  };
+
+  // Handler to update soldCount
+  const handleSoldCountChange = (productId, value) => {
+    setSoldCountEdits((prev) => ({ ...prev, [productId]: value }));
+  };
+  const handleSoldCountSave = async (productId) => {
+    setSoldCountLoading((prev) => ({ ...prev, [productId]: true }));
+    try {
+      const res = await axiosInstance.put(`/api/seller/products/${productId}/sold-count`, { soldCount: Number(soldCountEdits[productId]) });
+      setProducts((prev) => prev.map((p) => p._id === productId ? { ...p, soldCount: res.data.soldCount } : p));
+    } catch (err) {
+      alert('Failed to update sold count');
+    }
+    setSoldCountLoading((prev) => ({ ...prev, [productId]: false }));
   };
 
   return (
@@ -682,7 +701,25 @@ const SellerDashboard = () => {
                             {formatINR(product.price)}
                           </td>
                           <td className="py-3 px-4">{product.stock}</td>
-                          <td className="py-3 px-4">{product.totalSold || 0}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                className="w-16 border rounded px-1 text-sm"
+                                value={soldCountEdits[product._id] !== undefined ? soldCountEdits[product._id] : (product.soldCount || 0)}
+                                onChange={e => handleSoldCountChange(product._id, e.target.value)}
+                                disabled={soldCountLoading[product._id]}
+                              />
+                              <button
+                                className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                                onClick={() => handleSoldCountSave(product._id)}
+                                disabled={soldCountLoading[product._id]}
+                              >
+                                {soldCountLoading[product._id] ? 'Saving...' : 'Save'}
+                              </button>
+                            </div>
+                          </td>
                           <td className="py-3 px-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
                               {product.isActive ? 'Active' : 'Inactive'}

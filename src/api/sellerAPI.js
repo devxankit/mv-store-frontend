@@ -18,6 +18,7 @@ const sellerAPI = {
   createProduct: (productData, config) => axiosInstance.post('/sellers/products', productData, config),
   updateProduct: (id, productData) => axiosInstance.put(`/sellers/products/${id}`, productData),
   deleteProduct: (id) => axiosInstance.delete(`/sellers/products/${id}`),
+  updateSoldCount: (id, soldCount) => axiosInstance.put(`/sellers/products/${id}/sold-count`, { soldCount }),
 
   // Coupon management
   getCoupons: () => axiosInstance.get('/coupons'),

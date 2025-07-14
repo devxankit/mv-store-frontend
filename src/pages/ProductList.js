@@ -31,8 +31,23 @@ const ProductList = () => {
     const cartData = localStorage.getItem('cart');
     if (cartData) {
       try {
-        dispatch(loadCart(JSON.parse(cartData)));
-      } catch {}
+        const parsed = JSON.parse(cartData);
+        // Validate structure before dispatching
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          Array.isArray(parsed.items) &&
+          typeof parsed.total === 'number' &&
+          typeof parsed.itemCount === 'number'
+        ) {
+          dispatch(loadCart(parsed));
+        } else {
+          // Remove invalid cart
+          localStorage.removeItem('cart');
+        }
+      } catch {
+        localStorage.removeItem('cart');
+      }
     }
   }, [dispatch]);
 
@@ -218,7 +233,7 @@ const ProductList = () => {
           <p className="text-gray-500">Try adjusting your search or filter criteria</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8 xl:gap-10 justify-center">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5 p-1 md:p-2 justify-center">
           {sortedProducts.map((product) => (
             <ProductCard
               key={product._id}

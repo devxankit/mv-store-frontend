@@ -74,9 +74,23 @@ const cartSlice = createSlice({
       state.itemCount = 0;
     },
     loadCart: (state, action) => {
-      state.items = action.payload.items || [];
-      state.total = action.payload.total || 0;
-      state.itemCount = action.payload.itemCount || 0;
+      const data = action.payload;
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        !Array.isArray(data.items) ||
+        typeof data.total !== 'number' ||
+        typeof data.itemCount !== 'number'
+      ) {
+        // Invalid structure, reset to empty
+        state.items = [];
+        state.total = 0;
+        state.itemCount = 0;
+        return;
+      }
+      state.items = data.items;
+      state.total = data.total;
+      state.itemCount = data.itemCount;
     },
   },
   extraReducers: (builder) => {
@@ -87,9 +101,10 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload || [];
-        state.itemCount = state.items.reduce((total, item) => total + item.quantity, 0);
-        state.total = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+        // Filter out invalid/empty items
+        state.items = (action.payload || []).filter(item => item && item.product && item.quantity > 0);
+        state.itemCount = state.items.reduce((total, item) => total + (item?.quantity ?? 0), 0);
+        state.total = state.items.reduce((total, item) => total + ((item?.product?.price ?? 0) * (item?.quantity ?? 0)), 0);
       })
       .addCase(fetchCart.rejected, (state, action) => {
         state.loading = false;
@@ -101,9 +116,9 @@ const cartSlice = createSlice({
       })
       .addCase(addToCartAsync.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload || [];
-        state.itemCount = state.items.reduce((total, item) => total + item.quantity, 0);
-        state.total = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+        state.items = (action.payload || []).filter(item => item && item.product && item.quantity > 0);
+        state.itemCount = state.items.reduce((total, item) => total + (item?.quantity ?? 0), 0);
+        state.total = state.items.reduce((total, item) => total + ((item?.product?.price ?? 0) * (item?.quantity ?? 0)), 0);
       })
       .addCase(addToCartAsync.rejected, (state, action) => {
         state.loading = false;
@@ -115,9 +130,9 @@ const cartSlice = createSlice({
       })
       .addCase(removeFromCartAsync.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload || [];
-        state.itemCount = state.items.reduce((total, item) => total + item.quantity, 0);
-        state.total = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+        state.items = (action.payload || []).filter(item => item && item.product && item.quantity > 0);
+        state.itemCount = state.items.reduce((total, item) => total + (item?.quantity ?? 0), 0);
+        state.total = state.items.reduce((total, item) => total + ((item?.product?.price ?? 0) * (item?.quantity ?? 0)), 0);
       })
       .addCase(removeFromCartAsync.rejected, (state, action) => {
         state.loading = false;
@@ -129,9 +144,9 @@ const cartSlice = createSlice({
       })
       .addCase(updateCartQuantityAsync.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload || [];
-        state.itemCount = state.items.reduce((total, item) => total + item.quantity, 0);
-        state.total = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+        state.items = (action.payload || []).filter(item => item && item.product && item.quantity > 0);
+        state.itemCount = state.items.reduce((total, item) => total + (item?.quantity ?? 0), 0);
+        state.total = state.items.reduce((total, item) => total + ((item?.product?.price ?? 0) * (item?.quantity ?? 0)), 0);
       })
       .addCase(updateCartQuantityAsync.rejected, (state, action) => {
         state.loading = false;

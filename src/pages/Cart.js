@@ -81,29 +81,29 @@ const Cart = () => {
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Available Items</h2>
                 <div className="space-y-4">
                   {availableItems.map((item) => (
-                    <div key={item.product._id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-2 sm:p-4 border border-gray-200 rounded-lg">
+                    <div key={item.product?._id || Math.random()} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-2 sm:p-4 border border-gray-200 rounded-lg">
                       <img
-                        src={item.product.images && item.product.images[0] ? item.product.images[0].url : '/product-images/default.webp'}
-                        alt={item.product.name}
+                        src={item.product?.images && item.product?.images[0] ? item.product.images[0].url : '/product-images/default.webp'}
+                        alt={item.product?.name || 'Product'}
                         className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg mx-auto sm:mx-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{item.product.name}</h3>
+                        <h3 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{item.product?.name || 'Unnamed Product'}</h3>
                         <p className="text-blue-600 font-bold text-sm sm:text-base">
-                          {formatINR(item.product.price)}
+                          {formatINR(item.product?.price ?? 0)}
                         </p>
                         <div className="text-xs sm:text-sm text-green-600">In Stock</div>
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
                         <button
-                          onClick={() => updateQuantity(item.product._id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.product?._id, (item.quantity ?? 1) - 1)}
                           className="w-7 h-7 sm:w-8 sm:h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 text-base"
                         >
                           -
                         </button>
-                        <span className="w-8 sm:w-12 text-center text-sm sm:text-base">{item.quantity}</span>
+                        <span className="w-8 sm:w-12 text-center text-sm sm:text-base">{item.quantity ?? 0}</span>
                         <button
-                          onClick={() => updateQuantity(item.product._id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.product?._id, (item.quantity ?? 0) + 1)}
                           className="w-7 h-7 sm:w-8 sm:h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 text-base"
                         >
                           +
@@ -111,10 +111,10 @@ const Cart = () => {
                       </div>
                       <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-0 mt-2 sm:mt-0">
                         <p className="font-bold text-gray-800 text-sm sm:text-base">
-                          {formatINR(item.product.price * item.quantity)}
+                          {formatINR((item.product?.price ?? 0) * (item.quantity ?? 0))}
                         </p>
                         <button
-                          onClick={() => removeItem(item.product._id)}
+                          onClick={() => removeItem(item.product?._id)}
                           className="text-red-600 hover:text-red-800 text-xs sm:text-sm flex items-center gap-1"
                         >
                           <FaTrash />
@@ -133,25 +133,25 @@ const Cart = () => {
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Unavailable Items</h2>
                 <div className="space-y-4">
                   {unavailableItems.map((item) => (
-                    <div key={item.product._id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <div key={item.product?._id || Math.random()} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
                       <img
-                        src={item.product.images && item.product.images[0] ? item.product.images[0].url : '/product-images/default.webp'}
-                        alt={item.product.name}
+                        src={item.product?.images && item.product?.images[0] ? item.product.images[0].url : '/product-images/default.webp'}
+                        alt={item.product?.name || 'Product'}
                         className="w-20 h-20 object-cover rounded-lg opacity-50"
                       />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{item.product.name}</h3>
+                        <h3 className="font-semibold text-gray-800">{item.product?.name || 'Unnamed Product'}</h3>
                         <p className="text-blue-600 font-bold">
-                          {formatINR(item.product.price)}
+                          {formatINR(item.product?.price ?? 0)}
                         </p>
                         <div className="text-sm text-red-600">Out of Stock</div>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-gray-800">
-                          {formatINR(item.product.price * item.quantity)}
+                          {formatINR((item.product?.price ?? 0) * (item.quantity ?? 0))}
                         </p>
                         <button
-                          onClick={() => removeItem(item.product._id)}
+                          onClick={() => removeItem(item.product?._id)}
                           className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1"
                         >
                           <FaTrash />
