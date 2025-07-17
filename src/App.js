@@ -23,6 +23,7 @@ import Categories from './pages/Categories';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Toast from './components/common/Toast';
+import ScrollToTop from './components/common/ScrollToTop';
 
 function App() {
   const dispatch = useDispatch();
@@ -92,6 +93,7 @@ function App() {
       <ToastContainer position="top-right" autoClose={3000} />
       <Toast message={toastMessage} visible={toastVisible} onClose={() => setToastVisible(false)} />
       <div className="min-h-screen flex flex-col">
+        <ScrollToTop />
         <Header />
         <main className={`flex-grow ${location.pathname === '/chat' ? 'bg-white' : ''}`}>
           <Routes>

@@ -160,7 +160,7 @@ const Header = () => {
           </div>
 
           {/* Center: Wider Search Bar */}
-          <div className="flex-1 flex justify-center mx-2">
+          <div className="hidden md:flex flex-1 justify-center mx-2">
             <form onSubmit={handleSearch} className="w-full max-w-lg md:max-w-2xl">
               <div className="relative group">
                 <input

@@ -102,10 +102,10 @@ const Home = () => {
   const mainCategories = categories.filter(cat => !cat.parentCategory).slice(0, 6);
 
   // Debug: log main category names
-  console.log('Main categories:', mainCategories.map(cat => cat.name));
-  if (mainCategories.length) {
-    mainCategories.forEach(cat => console.log('Category name:', cat.name));
-  }
+  // console.log('Main categories:', mainCategories.map(cat => cat.name));
+  // if (mainCategories.length) {
+  //   mainCategories.forEach(cat => console.log('Category name:', cat.name));
+  // }
 
   // Fetch discover and recommended products from backend
   const [discoverProducts, setDiscoverProducts] = useState([]);
