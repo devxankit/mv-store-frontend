@@ -9,21 +9,21 @@ import 'swiper/css/pagination';
 
 const slides = [
   {
-    image: './images/banner_1.png',
+    image: './images/banner_1.jpg',
     headline: 'Discover Amazing Products',
     subheadline: 'Shop from thousands of verified sellers and find the best deals on quality products.',
     buttonText: 'Shop Now',
     buttonLink: '/products',
   },
   {
-    image: './images/banner_3.png',
+    image: './images/banner_3.jpg',
     headline: 'Trendy Collections',
     subheadline: 'Explore the latest trends and exclusive offers from top brands.',
     buttonText: 'Shop Now',
     buttonLink: '/products',
   },
   {
-    image: './images/banner_2.png',
+    image: './images/banner_2.jpg',
     headline: 'Quality Guaranteed',
     subheadline: 'Only the best products from trusted sellers, with easy returns.',
     buttonText: 'Shop Now',
