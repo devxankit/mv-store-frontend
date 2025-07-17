@@ -88,7 +88,7 @@ const ProductList = () => {
     fetch.then(res => {
       setProducts(res.data);
       setLoading(false);
-      console.log('Fetched products from API:', res.data);
+      // console.log('Fetched products from API:', res.data);
     }).catch((err) => {
       setLoading(false);
       console.error('Error fetching products:', err);
@@ -111,7 +111,7 @@ const ProductList = () => {
       (product.subCategory && String(product.subCategory) === String(category));
     return matchesSearch && matchesCategory;
   });
-  console.log('Filtered products:', filteredProducts);
+  // console.log('Filtered products:', filteredProducts);
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
@@ -125,7 +125,7 @@ const ProductList = () => {
         return a.name.localeCompare(b.name);
     }
   });
-  console.log('Sorted products:', sortedProducts);
+  // console.log('Sorted products:', sortedProducts);
 
   // Add to Cart handler
   const handleAddToCart = (product) => {
