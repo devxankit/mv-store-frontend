@@ -25,6 +25,7 @@ const Header = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceTimeout = useRef();
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -159,7 +160,7 @@ const Header = () => {
             </nav>
           </div>
 
-          {/* Center: Wider Search Bar */}
+          {/* Center: Wider Search Bar (Desktop) */}
           <div className="hidden md:flex flex-1 justify-center mx-2">
             <form onSubmit={handleSearch} className="w-full max-w-lg md:max-w-2xl">
               <div className="relative group">
@@ -206,24 +207,16 @@ const Header = () => {
 
           {/* Right: Chat, Dashboard, Icons & User */}
           <div className="flex items-center space-x-2 md:space-x-3">
-            {/* Chat */}
-            <Link to="/chat" className="p-2 text-gray-600 hover:text-primary-600 flex items-center relative transition-colors duration-200">
-              <FaComments className="text-lg md:text-xl" />
-              {totalUnread > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 animate-pulse">{totalUnread}</span>
-              )}
-            </Link>
-            {/* Dashboard (Seller/Admin) */}
-            {isAuthenticated && user?.role === 'seller' && (
-              <Link to="/seller/dashboard" className="p-2 text-gray-600 hover:text-primary-600 flex items-center transition-colors duration-200">
-                <FaTachometerAlt className="mr-1 text-lg" />
-              </Link>
-            )}
-            {isAuthenticated && user?.role === 'admin' && (
-              <Link to="/admin/dashboard" className="p-2 text-gray-600 hover:text-primary-600 flex items-center transition-colors duration-200">
-                <FaTachometerAlt className="mr-1 text-lg" />
-              </Link>
-            )}
+            {/* Mobile Search Icon */}
+            <button
+              className="md:hidden p-2 text-gray-600 hover:text-primary-600 focus:outline-none transition-colors duration-200"
+              aria-label="Open search"
+              onClick={() => setIsMobileSearchOpen(true)}
+            >
+              <FaSearch className="text-lg" />
+            </button>
+           
+          
             {/* Cart */}
             <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200">
               <FaShoppingCart className="text-lg md:text-xl" />
@@ -290,6 +283,71 @@ const Header = () => {
           </div>
         </div>
       </div>
+      {/* Mobile Search Modal */}
+      {isMobileSearchOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-start bg-black bg-opacity-40 transition-opacity duration-300 md:hidden animate-fade-in">
+          <div className="w-full bg-white shadow-lg rounded-b-2xl animate-slide-down-smooth p-4 pt-5 relative transition-transform duration-500">
+            <form onSubmit={handleSearch} className="w-full">
+              <div className="relative group flex items-center">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={handleInputChange}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={handleBlur}
+                  autoFocus
+                  className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all duration-200 shadow-sm group-focus-within:shadow-md bg-gray-50"
+                />
+                {/* Close Icon inside input */}
+                <button
+                  type="button"
+                  className="absolute right-10 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow text-gray-500 hover:text-primary-600 focus:outline-none z-20"
+                  style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  aria-label="Close search"
+                >
+                  <FaTimes size={18} />
+                </button>
+                {/* Search Icon at far right */}
+                <button
+                  type="submit"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors duration-200 z-10"
+                >
+                  <FaSearch />
+                </button>
+              </div>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {suggestions.map((product) => (
+                    <div
+                      key={product._id}
+                      className="flex items-center px-4 py-2 cursor-pointer hover:bg-primary-50"
+                      onMouseDown={() => {
+                        handleSuggestionClick(product._id);
+                        setIsMobileSearchOpen(false);
+                      }}
+                    >
+                      {product.images && product.images[0]?.url && (
+                        <img src={product.images[0].url} alt={product.name} className="w-10 h-10 object-cover rounded mr-3" />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                        <div className="text-xs text-gray-500">₹{product.price}</div>
+                      </div>
+                      {product.numReviews > 0 && (
+                        <div className="ml-2 text-xs text-yellow-600">★ {product.numReviews} reviews</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </form>
+          </div>
+          {/* Click outside to close */}
+          <div className="flex-1 w-full" onClick={() => setIsMobileSearchOpen(false)} />
+        </div>
+      )}
       {/* Mobile Drawer & Overlay */}
       <div className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}> 
         {/* Overlay */}
