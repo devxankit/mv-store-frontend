@@ -11,6 +11,10 @@ import {
   FaHeadset,
   FaCreditCard
 } from 'react-icons/fa';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper';
+import 'swiper/css';
+import 'swiper/css/pagination';
 import { fetchFeaturedProducts, fetchProducts } from '../redux/slices/productSlice';
 import { addToCartAsync } from '../redux/slices/cartSlice';
 import { formatINR } from '../utils/formatCurrency';
@@ -119,24 +123,6 @@ const Home = () => {
     <div className="min-h-screen">
       {/* Hero Section */}
       <HeroCarousel />
-
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="text-center">
-                <div className="text-primary-600 mb-4 flex justify-center">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Categories Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -158,6 +144,54 @@ const Home = () => {
             >
               View All Categories <FaArrowRight className="ml-2" />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Desktop Grid Layout */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div key={index} className="text-center">
+                <div className="text-primary-600 mb-4 flex justify-center">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Carousel Layout */}
+          <div className="md:hidden">
+            <Swiper
+              modules={[Pagination]}
+              spaceBetween={12}
+              slidesPerView={1}
+              centeredSlides={true}
+              pagination={{
+                clickable: true,
+                dynamicBullets: true,
+              }}
+              loop={false}
+              className="features-swiper"
+            >
+              {features.map((feature, index) => (
+                <SwiperSlide key={index}>
+                  <div className="text-center bg-white rounded-xl p-4 shadow-lg border border-gray-200 mx-2">
+                    <div className="text-primary-600 mb-3 flex justify-center">
+                      <div className="text-2xl">
+                        {feature.icon}
+                      </div>
+                    </div>
+                    <h3 className="text-base font-bold mb-2 text-gray-800">{feature.title}</h3>
+                    <p className="text-gray-600 text-xs leading-relaxed">{feature.description}</p>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
           </div>
         </div>
       </section>
