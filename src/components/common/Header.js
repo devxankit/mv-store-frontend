@@ -37,11 +37,7 @@ const Header = () => {
   const drawerRef = useRef();
   const socketRef = useRef();
 
-  // Debug authentication state
-  useEffect(() => {
-    console.log('Auth State:', { isAuthenticated, user: user?.name, role: user?.role });
-  }, [isAuthenticated, user]);
-
+ 
   // Close drawer on outside click
   useEffect(() => {
     if (!isMenuOpen) return;
