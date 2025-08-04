@@ -90,7 +90,7 @@ function App() {
 
   return (
     <>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={2000} />
       <Toast message={toastMessage} visible={toastVisible} onClose={() => setToastVisible(false)} />
       <div className="min-h-screen flex flex-col">
         <ScrollToTop />

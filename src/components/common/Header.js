@@ -37,6 +37,11 @@ const Header = () => {
   const drawerRef = useRef();
   const socketRef = useRef();
 
+  // Debug authentication state
+  useEffect(() => {
+    console.log('Auth State:', { isAuthenticated, user: user?.name, role: user?.role });
+  }, [isAuthenticated, user]);
+
   // Close drawer on outside click
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -216,6 +221,29 @@ const Header = () => {
               <FaSearch className="text-lg" />
             </button>
            
+            {/* Chat Icon - Show for all authenticated users */}
+            {isAuthenticated && (
+              <Link to="/chat" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200">
+                <FaComments className="text-lg md:text-xl" />
+                {totalUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce">{totalUnread}</span>
+                )}
+              </Link>
+            )}
+
+            {/* Admin Dashboard Icon - Only for admin users */}
+            {isAuthenticated && user?.role === 'admin' && (
+              <Link to="/admin" className="p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200" title="Admin Dashboard">
+                <FaTachometerAlt className="text-lg md:text-xl" />
+              </Link>
+            )}
+
+            {/* Seller Dashboard Icon - Only for seller users */}
+            {isAuthenticated && user?.role === 'seller' && (
+              <Link to="/seller" className="p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200" title="Seller Dashboard">
+                <FaTachometerAlt className="text-lg md:text-xl" />
+              </Link>
+            )}
           
             {/* Cart */}
             <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200">
@@ -257,6 +285,26 @@ const Header = () => {
                     >
                       Profile
                     </Link>
+                    {/* Admin Dashboard Link */}
+                    {user?.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 transition-colors duration-200"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <FaTachometerAlt className="inline mr-2" /> Admin Dashboard
+                      </Link>
+                    )}
+                    {/* Seller Dashboard Link */}
+                    {user?.role === 'seller' && (
+                      <Link
+                        to="/seller"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 transition-colors duration-200"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <FaTachometerAlt className="inline mr-2" /> Seller Dashboard
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 transition-colors duration-200"
@@ -381,10 +429,10 @@ const Header = () => {
               )}
             </Link>
             {isAuthenticated && user?.role === 'seller' && (
-              <Link to="/seller/dashboard" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Seller Dashboard</Link>
+              <Link to="/seller" className="nav-link px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>Seller Dashboard</Link>
             )}
             {isAuthenticated && user?.role === 'admin' && (
-              <Link to="/admin/dashboard" className="nav-link flex items-center px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/admin" className="nav-link flex items-center px-2 py-2 rounded hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
                 <FaTachometerAlt className="mr-1" /> Admin Dashboard
               </Link>
             )}

@@ -1,12 +1,11 @@
 import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Navigation, Pagination, A11y, EffectFade } from 'swiper';
+import { Autoplay, Navigation, Pagination, A11y } from 'swiper';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import 'swiper/css/effect-fade';
 
 const slides = [
   {
@@ -53,18 +52,17 @@ const HeroCarousel = () => {
   return (
     <section className="relative w-full min-h-[30vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden">
       <Swiper
-        modules={[Autoplay, Navigation, Pagination, A11y, EffectFade]}
+        modules={[Autoplay, Navigation, Pagination, A11y]}
         autoplay={{ 
-          delay: 5000, 
+          delay: 4000,
           disableOnInteraction: false,
           pauseOnMouseEnter: true,
           waitForTransition: true
         }}
-        effect="fade"
-        fadeEffect={{
-          crossFade: true
-        }}
-        speed={1200}
+        speed={800}
+        spaceBetween={0}
+        slidesPerView={1}
+        centeredSlides={true}
         pagination={{ 
           clickable: true,
           dynamicBullets: true,
@@ -78,12 +76,9 @@ const HeroCarousel = () => {
           nextSlideMessage: 'Next slide',
         }}
         className="w-full h-full hero-carousel"
-        onSlideChangeTransitionStart={() => {
-          // Smooth transition start
-        }}
-        onSlideChangeTransitionEnd={() => {
-          // Smooth transition end
-        }}
+        grabCursor={true}
+        watchSlidesProgress={true}
+        watchSlidesVisibility={true}
       >
         {slides.map((slide, idx) => (
           <SwiperSlide key={idx}>
@@ -93,10 +88,10 @@ const HeroCarousel = () => {
                 alt="Banner"
                 className="object-cover w-full h-full max-h-[100vh]"
                 draggable="false"
-                initial={{ scale: 1.1, opacity: 0.8 }}
+                initial={{ scale: 1.05, opacity: 0.9 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{
-                  duration: 2,
+                  duration: 1.5,
                   ease: [0.25, 0.46, 0.45, 0.94]
                 }}
               />
@@ -112,12 +107,12 @@ const HeroCarousel = () => {
                 key={idx}
               >
                 <motion.div
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    duration: 1,
+                    duration: 0.8,
                     ease: [0.25, 0.46, 0.45, 0.94],
-                    delay: 0.5
+                    delay: 0.3
                   }}
                 >
                   <Link
