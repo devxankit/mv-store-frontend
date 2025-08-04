@@ -13,7 +13,7 @@ import {
   FaTachometerAlt
 } from 'react-icons/fa';
 import { logout } from '../../redux/slices/authSlice';
-import { toggleSidebar, toggleSearchModal, setChatUnreadCounts } from '../../redux/slices/uiSlice';
+import { setChatUnreadCounts } from '../../redux/slices/uiSlice';
 import io from 'socket.io-client';
 import axiosInstance from '../../api/axiosConfig';
 import { clearCart } from '../../redux/slices/cartSlice';
@@ -158,7 +158,7 @@ const Header = () => {
                 <Link to="/vendor-registration" className="px-1.5 py-1 rounded transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">Become a Vendor</Link>
               )}
             </nav>
-          </div>
+          </div>  
 
           {/* Center: Wider Search Bar (Desktop) */}
           <div className="hidden md:flex flex-1 justify-center mx-2">
@@ -403,6 +403,7 @@ const Header = () => {
                 </>
               )}
             </div>
+            
           </nav>
         </aside>
       </div>
